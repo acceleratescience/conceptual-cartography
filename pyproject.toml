@@ -1,26 +1,24 @@
-[project]
+[tool.poetry]
 name = "conceptual-cartography"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.12"
-dependencies = [
-    "torch>=2.7.0",
-    "tqdm>=4.67.1",
-]
+packages = [{include = "src"}]
 
-[tool.uv.sources]
-torch = [
-  { index = "pytorch-cpu" },
-]
-torchvision = [
-  { index = "pytorch-cpu" },
-]
+[tool.poetry.dependencies]
+python = ">=3.12,<3.13"
+torch = { version = "^2.7.0", source = "pytorch" }
 
-[[tool.uv.index]]
-name = "pytorch-cpu"
+[[tool.poetry.source]]
+name = "pytorch"
 url = "https://download.pytorch.org/whl/cpu"
-explicit = true
+priority = "explicit"
 
-[project.optional-dependencies]
-dev = ["ruff", "black", "pytest"]
+[tool.poetry.group.dev.dependencies]
+# Add your dev dependencies here
+# For example:
+pytest = "^7.3.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
