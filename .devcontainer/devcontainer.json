@@ -7,7 +7,8 @@
     "customizations": {
         "vscode": {
             "settings": {
-            "terminal.integrated.defaultProfile.linux": "bash"
+            "terminal.integrated.defaultProfile.linux": "bash",
+            "editor.formatOnSave": true
             },
             "extensions": [
             "ms-python.python",
@@ -17,5 +18,6 @@
             "ms-azuretools.vscode-docker"
             ]
         }
-    }
-  }
+    },
+    "postCreateCommand": "bash ./setup.sh --dev"
+}

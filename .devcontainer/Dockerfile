@@ -5,6 +5,3 @@ WORKDIR /workspace
 COPY . .
 
 RUN chmod +x ./setup.sh
-
-# Run your universal setup script
-RUN bash ./setup.sh --dev
