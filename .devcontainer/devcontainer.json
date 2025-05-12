@@ -1,0 +1,21 @@
+{
+    "name": "Conceptual Engineering Tool",
+    "build": {
+      "dockerfile": "Dockerfile",
+      "context": ".."
+    },
+    "customizations": {
+        "vscode": {
+            "settings": {
+            "terminal.integrated.defaultProfile.linux": "bash"
+            },
+            "extensions": [
+            "ms-python.python",
+            "charliermarsh.ruff",
+            "ms-toolsai.jupyter",
+            "github.copilot-chat",
+            "ms-azuretools.vscode-docker"
+            ]
+        }
+    }
+  }
