@@ -1,16 +1,14 @@
 import glob
-import logging
 import os
 import re
 from concurrent.futures import ThreadPoolExecutor
-from typing import List, Tuple, Union
+from typing import List, Tuple
 
 import torch
 from tqdm import tqdm
 from transformers import AutoModel, AutoTokenizer
 from transformers.utils import logging as transformers_logging
 
-from .utils import get_device
 
 # suppress the annoying tokenization length warning.
 transformers_logging.set_verbosity(40)
@@ -28,10 +26,14 @@ class ContextEmbedder:
             model_name,
             use_fast=True,
             strip_accents=False,  # If not needed
-            clean_up_tokenization_spaces=False  # If not needed
+            clean_up_tokenization_spaces=False,  # If not needed
         )
         self.model = AutoModel.from_pretrained(
-            model_name, torch_dtype=torch.float16, attn_implementation='sdpa', trust_remote_code=True)
+            model_name,
+            torch_dtype=torch.float16,
+            attn_implementation="sdpa",
+            trust_remote_code=True,
+        )
 
         # Set device
         if torch.cuda.is_available():
@@ -48,7 +50,13 @@ class ContextEmbedder:
         # max input size
         self.max_length = self.model.config.max_position_embeddings
 
-    def __call__(self, sentences: list[str], target_word: str, context_window: int, line_context_only: bool = False) -> Tuple[torch.Tensor, list[list[int]], list[int]]:
+    def __call__(
+        self,
+        sentences: list[str],
+        target_word: str,
+        context_window: int,
+        line_context_only: bool = False,
+    ) -> Tuple[torch.Tensor, list[list[int]], list[int]]:
         """Create embeddings for target word occurrences in the provided sentences.
 
         Args:
@@ -66,7 +74,7 @@ class ContextEmbedder:
             )
 
         target_word = target_word.lower()
-        pattern = r'\b' + re.escape(target_word) + r'\b'
+        pattern = r"\b" + re.escape(target_word) + r"\b"
 
         if line_context_only:
             # Process each line separately
@@ -84,9 +92,10 @@ class ContextEmbedder:
 
                 # Tokenize just this sentence
                 encoding = self.tokenizer(
-                    sentence, add_special_tokens=False, return_offsets_mapping=True)
-                tokens = encoding['input_ids']
-                offset_mapping = encoding['offset_mapping']
+                    sentence, add_special_tokens=False, return_offsets_mapping=True
+                )
+                tokens = encoding["input_ids"]
+                offset_mapping = encoding["offset_mapping"]
 
                 text_occurrences = []
                 for match in re.finditer(pattern, sentence_lower):
@@ -116,9 +125,10 @@ class ContextEmbedder:
 
             # Tokenize the full text with offsets
             encoding = self.tokenizer(
-                text, add_special_tokens=False, return_offsets_mapping=True)
-            tokens = encoding['input_ids']
-            offset_mapping = encoding['offset_mapping']
+                text, add_special_tokens=False, return_offsets_mapping=True
+            )
+            tokens = encoding["input_ids"]
+            offset_mapping = encoding["offset_mapping"]
 
             # Find exact target word occurrences using regex with word boundaries
             text_occurrences = []
@@ -163,16 +173,17 @@ class ContextEmbedder:
         # Prepare all contexts at once
         padded_contexts = []
         attention_masks = []
-        max_len = max(len(context)
-                      for context in all_contexts) + 2  # +2 for special tokens
+        max_len = (
+            max(len(context) for context in all_contexts) + 2
+        )  # +2 for special tokens
 
         for context in all_contexts:
             # Add special tokens
-            padded = [self.tokenizer.cls_token_id] + \
-                context + [self.tokenizer.sep_token_id]
+            padded = (
+                [self.tokenizer.cls_token_id] + context + [self.tokenizer.sep_token_id]
+            )
             attention_mask = [1] * len(padded) + [0] * (max_len - len(padded))
-            padded = padded + [self.tokenizer.pad_token_id] * \
-                (max_len - len(padded))
+            padded = padded + [self.tokenizer.pad_token_id] * (max_len - len(padded))
 
             padded_contexts.append(padded)
             attention_masks.append(attention_mask)
@@ -184,9 +195,7 @@ class ContextEmbedder:
         # Single forward pass
         with torch.no_grad():
             outputs = self.model(
-                inputs,
-                attention_mask=attention_mask,
-                output_hidden_states=True
+                inputs, attention_mask=attention_mask, output_hidden_states=True
             ).last_hidden_state
 
             # Extract embeddings for each occurrence
@@ -194,15 +203,24 @@ class ContextEmbedder:
             for i, context in enumerate(all_contexts):
                 start_idx = all_indices[i] + 1  # +1 for [CLS] token
                 # Get the embedding for the target word
-                word_embedding = outputs[i, start_idx:start_idx +
-                                         1, :].mean(dim=0, keepdim=True).cpu()
+                word_embedding = (
+                    outputs[i, start_idx : start_idx + 1, :]
+                    .mean(dim=0, keepdim=True)
+                    .cpu()
+                )
                 embeddings.append(word_embedding)
 
             embeddings = torch.cat(embeddings, dim=0)
 
         return embeddings, all_contexts, all_indices
 
-    def process_file(self, file_path: str, target_word: str, context_window: int, line_context_only: bool = False) -> Tuple[torch.Tensor, list[list[int]], list[int]]:
+    def process_file(
+        self,
+        file_path: str,
+        target_word: str,
+        context_window: int,
+        line_context_only: bool = False,
+    ) -> Tuple[torch.Tensor, list[list[int]], list[int]]:
         """Process a text file and create embeddings for the target word occurrences.
 
         Args:
@@ -217,7 +235,13 @@ class ContextEmbedder:
         sentences = self._read_file(file_path)
         return self.__call__(sentences, target_word, context_window, line_context_only)
 
-    def process_directory(self, directory_path: str, target_word: str, context_window: int, line_context_only: bool = False):
+    def process_directory(
+        self,
+        directory_path: str,
+        target_word: str,
+        context_window: int,
+        line_context_only: bool = False,
+    ):
         """Process all text files in a directory.
 
         Args:
@@ -233,8 +257,9 @@ class ContextEmbedder:
 
         with ThreadPoolExecutor() as executor:
             futures = [
-                executor.submit(self.process_file, f, target_word,
-                                context_window, line_context_only)
+                executor.submit(
+                    self.process_file, f, target_word, context_window, line_context_only
+                )
                 for f in tqdm(files, desc="Submitting files", unit="file")
             ]
 

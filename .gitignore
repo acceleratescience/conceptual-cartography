@@ -10,3 +10,6 @@ wheels/
 .venv
 
 poetry.lock
+
+notebooks/
+data/
