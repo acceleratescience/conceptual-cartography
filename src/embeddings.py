@@ -1,32 +1,28 @@
 import glob
 import os
 import re
-from concurrent.futures import ThreadPoolExecutor
-from typing import List, Tuple
+# Keep for potential pre-processing? Tried but it seems actually slower...
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+from typing import List, Tuple, Dict
 
 import torch
 from tqdm import tqdm
 from transformers import AutoModel, AutoTokenizer
 from transformers.utils import logging as transformers_logging
 
-
-# suppress the annoying tokenization length warning.
+# suppress warnings, not sure why this is needed
 transformers_logging.set_verbosity(40)
 
 
 class ContextEmbedder:
     def __init__(self, model_name: str):
-        """An embedder for text contexts.
-
-        Args:
-            model_name (str): The name of the model to use. Must be a model from the HuggingFace Transformers library.
-        """
-        os.environ["TOKENIZERS_PARALLELISM"] = "false"
+        os.environ["TOKENIZERS_PARALLELISM"] = "true"
+        self.model_name = model_name
         self.tokenizer = AutoTokenizer.from_pretrained(
             model_name,
             use_fast=True,
-            strip_accents=False,  # If not needed
-            clean_up_tokenization_spaces=False,  # If not needed
+            strip_accents=False,
+            clean_up_tokenization_spaces=False,
         )
         self.model = AutoModel.from_pretrained(
             model_name,
@@ -35,7 +31,6 @@ class ContextEmbedder:
             trust_remote_code=True,
         )
 
-        # Set device
         if torch.cuda.is_available():
             self.device = torch.device("cuda:0")
         elif torch.mps.is_available():
@@ -46,246 +41,244 @@ class ContextEmbedder:
 
         self.model.to(self.device)
         self.model.eval()
-
-        # max input size
         self.max_length = self.model.config.max_position_embeddings
+        self.cls_token_id = self.tokenizer.cls_token_id
+        self.sep_token_id = self.tokenizer.sep_token_id
+        self.pad_token_id = self.tokenizer.pad_token_id
+        if self.cls_token_id is None or self.sep_token_id is None or self.pad_token_id is None:
+            raise ValueError(
+                "Tokenizer must have CLS, SEP, and PAD tokens defined.")
+
+    @staticmethod
+    def _find_occurrences_in_sentence_static(args: Dict) -> List[Tuple[str, int]]:
+        """_summary_
+
+        Args:
+            args (Dict): _description_
+
+        Returns:
+            List[Tuple[str, int]]: _description_
+        """
+        sentence_text: str = args["sentence_text"]
+        pattern_str: str = args["pattern_str"]
+
+        results = []
+        if not sentence_text.strip():
+            return results
+
+        sentence_lower = sentence_text.lower()
+        for match in re.finditer(pattern_str, sentence_lower):
+            results.append((sentence_text, match.start()))
+        return results
+
+    def _prepare_model_batch(self, current_batch_token_ids: List[List[int]], current_batch_target_indices: List[int]):
+        """_summary_
+
+        Args:
+            current_batch_token_ids (List[List[int]]): _description_
+            current_batch_target_indices (List[int]): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        batch_max_len = 0
+        for tokens in current_batch_token_ids:
+            # +2 for [CLS] and [SEP]
+            batch_max_len = max(batch_max_len, len(tokens) + 2)
+
+        batch_max_len = min(batch_max_len, self.max_length)
+
+        padded_input_ids = []
+        attention_masks = []
+        adjusted_target_indices = []
+
+        for i, tokens in enumerate(current_batch_token_ids):
+            truncated_tokens = tokens[:batch_max_len - 2]
+
+            input_ids_with_special = [self.cls_token_id] + \
+                truncated_tokens + [self.sep_token_id]
+            padding_len = batch_max_len - len(input_ids_with_special)
+
+            padded_ids = input_ids_with_special + \
+                [self.pad_token_id] * padding_len
+            attn_mask = [1] * len(input_ids_with_special) + [0] * padding_len
+
+            padded_input_ids.append(padded_ids)
+            attention_masks.append(attn_mask)
+
+            if current_batch_target_indices[i] < len(truncated_tokens):
+                adjusted_target_indices.append(
+                    current_batch_target_indices[i] + 1)
+            else:
+                adjusted_target_indices.append(-1)  # Placeholder for invalid
+
+        return (
+            torch.tensor(padded_input_ids, dtype=torch.long).to(self.device),
+            torch.tensor(attention_masks, dtype=torch.long).to(self.device),
+            adjusted_target_indices,
+        )
 
     def __call__(
         self,
         sentences: list[str],
         target_word: str,
-        context_window: int,
-        line_context_only: bool = False,
+        context_window: int | None = None,
+        model_batch_size: int = 64,
     ) -> Tuple[torch.Tensor, list[list[int]], list[int]]:
-        """Create embeddings for target word occurrences in the provided sentences.
+        """_summary_
 
         Args:
-            sentences (List[str]): List of sentences to process.
-            target_word (str): The target word to extract the context for.
-            context_window (int): The size of the context window to extract.
-            line_context_only (bool): If True, only use the line where the target word appears as context.
+            sentences (list[str]): A list of sentences to search for the target word.
+            target_word (str): The target word to find in the sentences.
+            context_window (int | None, optional): Total size of context window. The number of
+                tokens surrounding the target word will be context_window // 2. Defaults to None.
+            model_batch_size (int, optional): Batch size to be fed into the model only. Does not
+                batch the input to the tokenizer. Defaults to 64.
+
+        Raises:
+            ValueError: If context_window is larger than the model's max length.
 
         Returns:
-            Tuple[torch.Tensor, List[List[int]], List[int]]: Returns embeddings tensor, contexts, and indices.
+            Tuple[torch.Tensor, list[list[int]], list[int]]: eturns the final_embeddings, 
+                collected_valid_contexts, collected_valid_indices
         """
-        if 2 * context_window > self.max_length and not line_context_only:
+
+        if 2 * context_window > self.max_length and context_window is not None:
             raise ValueError(
-                f"The context window is too large for the model. The maximum context window is {self.max_length // 2}."
+                f"Context window {context_window} too large for model max length {self.max_length}. Max context window: {self.max_length // 2}"
             )
 
-        target_word = target_word.lower()
-        pattern = r"\b" + re.escape(target_word) + r"\b"
+        target_word_lower = target_word.lower()
+        pattern = r"\b" + re.escape(target_word_lower) + r"\b"
 
-        if line_context_only:
-            # Process each line separately
-            all_contexts = []
-            all_indices = []
+        contexts_for_model_input: List[List[int]] = []
+        target_indices_in_context: List[int] = []
 
-            for sentence in sentences:
+        # if context_window is None, we use the whole sentence
+        if context_window is None:
+            lines_with_target_info = []
+            for sentence_idx, sentence in enumerate(sentences):
                 if not sentence.strip():
                     continue
-
                 sentence_lower = sentence.lower()
-
-                if not re.search(pattern, sentence_lower):
-                    continue
-
-                # Tokenize just this sentence
-                encoding = self.tokenizer(
-                    sentence, add_special_tokens=False, return_offsets_mapping=True
-                )
-                tokens = encoding["input_ids"]
-                offset_mapping = encoding["offset_mapping"]
-
-                text_occurrences = []
                 for match in re.finditer(pattern, sentence_lower):
-                    text_occurrences.append((match.start(), match.end()))
+                    lines_with_target_info.append((sentence, match.start()))
 
-                token_occurrences = []
-                for text_start, text_end in text_occurrences:
-                    token_start = None
-                    token_end = None
+            if not lines_with_target_info:
+                return torch.zeros(1, self.model.config.hidden_size), [], []
 
-                    for idx, (start, end) in enumerate(offset_mapping):
-                        if start == text_start:
-                            token_start = idx
-                        if end == text_end:
-                            token_end = idx + 1
+            tokenizer_batch_size = model_batch_size * 4
+
+            for i in range(0, len(lines_with_target_info), tokenizer_batch_size):
+                current_tokenizer_batch = lines_with_target_info[i:i +
+                                                                tokenizer_batch_size]
+                batch_texts = [item[0] for item in current_tokenizer_batch]
+                batch_char_offsets = [item[1]
+                                    for item in current_tokenizer_batch]
+
+                encodings = self.tokenizer(
+                    batch_texts,
+                    add_special_tokens=False,
+                    return_offsets_mapping=True,
+                    padding=False,
+                    truncation=True,
+                    max_length=self.max_length - 2
+                )
+
+                for j, text_idx_in_batch in enumerate(range(len(batch_texts))):
+                    char_start_offset = batch_char_offsets[j]
+                    token_ids = encodings.input_ids[text_idx_in_batch]
+                    offset_mapping = encodings.offset_mapping[text_idx_in_batch]
+
+                    target_token_start = -1
+                    for token_idx, (tok_char_start, tok_char_end) in enumerate(offset_mapping):
+                        if tok_char_start == char_start_offset:
+                            target_token_start = token_idx
                             break
 
-                    if token_start is not None and token_end is not None:
-                        token_occurrences.append((token_start, token_end))
+                    if target_token_start != -1:
+                        contexts_for_model_input.append(token_ids)
+                        target_indices_in_context.append(target_token_start)
 
-                for token_start, token_end in token_occurrences:
-                    all_contexts.append(tokens)
-                    all_indices.append(token_start)
         else:
-            # Join all text and process as one
-            text = " ".join(sentences).lower()
+            full_text = " ".join(s for s in sentences if s.strip()).lower()
+            if not full_text:
+                return torch.zeros(1, self.model.config.hidden_size, dtype=self.model.dtype), [], []
 
-            # Tokenize the full text with offsets
-            encoding = self.tokenizer(
-                text, add_special_tokens=False, return_offsets_mapping=True
+            encoding_full_text = self.tokenizer(
+                full_text,
+                add_special_tokens=False,
+                return_offsets_mapping=True
             )
-            tokens = encoding["input_ids"]
-            offset_mapping = encoding["offset_mapping"]
+            all_tokens = encoding_full_text["input_ids"]
+            all_offset_mapping = encoding_full_text["offset_mapping"]
 
-            # Find exact target word occurrences using regex with word boundaries
             text_occurrences = []
-            for match in re.finditer(pattern, text):
+            for match in re.finditer(pattern, full_text):
                 text_occurrences.append((match.start(), match.end()))
 
-            # Map text occurrences to token indices
-            token_occurrences = []
+            token_occurrence_spans = []
+            print("here")
+            # Find the token spans for each occurrence of the target word
             for text_start, text_end in text_occurrences:
-                token_start = None
-                token_end = None
-
-                for idx, (start, end) in enumerate(offset_mapping):
-                    if start == text_start:
-                        token_start = idx
-                    if end == text_end:
-                        token_end = idx + 1
+                tok_start, tok_end = -1, -1
+                for idx, (char_s, char_e) in enumerate(all_offset_mapping):
+                    if char_s == text_start:
+                        tok_start = idx
+                    if char_e == text_end:
+                        tok_end = idx + 1
                         break
+                        
+                if tok_start != -1 and tok_end != -1 and tok_start < tok_end:
+                    token_occurrence_spans.append((tok_start, tok_end))
+            print("here2")
+            for token_start, token_end_of_target in token_occurrence_spans:
+                context_s = max(0, token_start - context_window)
+                context_e = min(len(all_tokens),
+                                token_end_of_target + context_window)
 
-                if token_start is not None and token_end is not None:
-                    token_occurrences.append((token_start, token_end))
+                actual_context_token_list = all_tokens[context_s:context_e]
+                target_pos_in_this_window = token_start - context_s
 
-            # Extract contexts
-            all_contexts = []
-            all_indices = []
+                contexts_for_model_input.append(actual_context_token_list)
+                target_indices_in_context.append(target_pos_in_this_window)
 
-            for token_start, token_end in token_occurrences:
-                # Calculate context boundaries
-                context_start = max(0, token_start - context_window)
-                context_end = min(len(tokens), token_end + context_window)
+        if not contexts_for_model_input:
+            return torch.zeros(1, self.model.config.hidden_size, dtype=self.model.dtype), [], []
 
-                # Extract context
-                context = tokens[context_start:context_end]
-                target_pos = token_start - context_start
+        all_embeddings_list = []
+        collected_valid_contexts = []
+        collected_valid_indices = []
 
-                all_contexts.append(context)
-                all_indices.append(target_pos)
+        for i in tqdm(range(0, len(contexts_for_model_input), model_batch_size), desc="Inferring batches"):
+            batch_contexts = contexts_for_model_input[i:i+model_batch_size]
+            batch_target_starts = target_indices_in_context[i:i +
+                                                            model_batch_size]
 
-        if len(all_contexts) == 0:
-            return torch.zeros(1, self.model.config.hidden_size), [], []
+            input_ids_tensor, attn_mask_tensor, adjusted_target_token_indices = \
+                self._prepare_model_batch(batch_contexts, batch_target_starts)
 
-        # Prepare all contexts at once
-        padded_contexts = []
-        attention_masks = []
-        max_len = (
-            max(len(context) for context in all_contexts) + 2
-        )  # +2 for special tokens
+            if input_ids_tensor.numel() == 0:
+                continue  # Skip empty batches, obviously
 
-        for context in all_contexts:
-            # Add special tokens
-            padded = (
-                [self.tokenizer.cls_token_id] + context + [self.tokenizer.sep_token_id]
-            )
-            attention_mask = [1] * len(padded) + [0] * (max_len - len(padded))
-            padded = padded + [self.tokenizer.pad_token_id] * (max_len - len(padded))
+            with torch.no_grad():
+                outputs = self.model(
+                    input_ids_tensor, attention_mask=attn_mask_tensor).last_hidden_state
 
-            padded_contexts.append(padded)
-            attention_masks.append(attention_mask)
+            for j, target_tok_idx in enumerate(adjusted_target_token_indices):
 
-        # Convert to tensors
-        inputs = torch.tensor(padded_contexts).to(self.device)
-        attention_mask = torch.tensor(attention_masks).to(self.device)
+                if target_tok_idx != -1 and target_tok_idx < outputs.shape[1]:
 
-        # Single forward pass
-        with torch.no_grad():
-            outputs = self.model(
-                inputs, attention_mask=attention_mask, output_hidden_states=True
-            ).last_hidden_state
+                    word_embedding = outputs[j,
+                                            target_tok_idx:target_tok_idx+1, :].mean(dim=0)
+                    all_embeddings_list.append(word_embedding.unsqueeze(
+                        0).cpu())
 
-            # Extract embeddings for each occurrence
-            embeddings = []
-            for i, context in enumerate(all_contexts):
-                start_idx = all_indices[i] + 1  # +1 for [CLS] token
-                # Get the embedding for the target word
-                word_embedding = (
-                    outputs[i, start_idx : start_idx + 1, :]
-                    .mean(dim=0, keepdim=True)
-                    .cpu()
-                )
-                embeddings.append(word_embedding)
+                    collected_valid_contexts.append(batch_contexts[j])
+                    collected_valid_indices.append(batch_target_starts[j])
 
-            embeddings = torch.cat(embeddings, dim=0)
+        if not all_embeddings_list:
+            return torch.zeros(1, self.model.config.hidden_size, dtype=self.model.dtype), [], []
 
-        return embeddings, all_contexts, all_indices
-
-    def process_file(
-        self,
-        file_path: str,
-        target_word: str,
-        context_window: int,
-        line_context_only: bool = False,
-    ) -> Tuple[torch.Tensor, list[list[int]], list[int]]:
-        """Process a text file and create embeddings for the target word occurrences.
-
-        Args:
-            file_path (str): The path to the text file to process.
-            target_word (str): The target word to extract the context for.
-            context_window (int): The size of the context window to extract.
-            line_context_only (bool): If True, only use the line where the target word appears as context.
-
-        Returns:
-            Tuple[torch.Tensor, List[List[int]], List[int]]: Returns embeddings tensor, contexts, and indices.
-        """
-        sentences = self._read_file(file_path)
-        return self.__call__(sentences, target_word, context_window, line_context_only)
-
-    def process_directory(
-        self,
-        directory_path: str,
-        target_word: str,
-        context_window: int,
-        line_context_only: bool = False,
-    ):
-        """Process all text files in a directory.
-
-        Args:
-            directory_path (str): The path to the directory containing text files.
-            target_word (str): The target word to extract the context for.
-            context_window (int): The size of the context window to extract.
-            line_context_only (bool): If True, only use the line where the target word appears as context.
-
-        Returns:
-            Tuple[torch.Tensor, List[List[str]]]: Returns embeddings tensor and contexts.
-        """
-        files = glob.glob(f"{directory_path}/*.txt")
-
-        with ThreadPoolExecutor() as executor:
-            futures = [
-                executor.submit(
-                    self.process_file, f, target_word, context_window, line_context_only
-                )
-                for f in tqdm(files, desc="Submitting files", unit="file")
-            ]
-
-            results = []
-            for future in tqdm(futures, desc="Processing files", unit="file"):
-                results.append(future.result())
-
-        word_embeddings = []
-        contexts = []
-        for embeddings, context, _ in results:
-            if len(context) > 0:
-                word_embeddings.append(embeddings)
-                contexts.extend(context)
-
-        return torch.cat(word_embeddings, dim=0), contexts
-
-    def _read_file(self, file_path: str) -> List[str]:
-        """Read and preprocess text from a file.
-
-        Args:
-            file_path (str): The path to the text file.
-
-        Returns:
-            List[str]: List of preprocessed sentences from the file.
-        """
-        with open(file_path, "r") as file:
-            # Skip first line and get remaining lines
-            lines = file.read().split("\n")[1:]
-            return lines
+        final_embeddings = torch.cat(all_embeddings_list, dim=0)
+        return final_embeddings, collected_valid_contexts, collected_valid_indices
