@@ -5,6 +5,9 @@ Welcome to the Conceptual Landscaping with BERT and Friends repository! This pro
 
 There are a number of ways to run this repo.
 
+## Installation of PyTorch
+Due to the nature of PyTorch installations across different hardware, we have left the installation of PyTorch to the user. For installation instructions, please refer to the [PyTorch installation page](https://pytorch.org/get-started/locally/). The majority of the development for this repo was done using ROCm...not CUDA.
+
 ## User interface
 You can run the code in this repo using the user interface. This is a simple web app that allows you to upload a text file and visualize the conceptual landscape. To run the user interface, follow these steps:
 
