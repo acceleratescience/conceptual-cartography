@@ -218,7 +218,6 @@ class ContextEmbedder:
                 text_occurrences.append((match.start(), match.end()))
 
             token_occurrence_spans = []
-            print("here")
             # Find the token spans for each occurrence of the target word
             for text_start, text_end in text_occurrences:
                 tok_start, tok_end = -1, -1
@@ -231,7 +230,6 @@ class ContextEmbedder:
                         
                 if tok_start != -1 and tok_end != -1 and tok_start < tok_end:
                     token_occurrence_spans.append((tok_start, tok_end))
-            print("here2")
             for token_start, token_end_of_target in token_occurrence_spans:
                 context_s = max(0, token_start - context_window)
                 context_e = min(len(all_tokens),
