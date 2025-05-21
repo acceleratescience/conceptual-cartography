@@ -100,9 +100,11 @@ else
     # Update dependencies based on the --dev flag
     if [ "$INSTALL_DEV" = true ]; then
         echo "Updating with development dependencies..."
+        poetry cache clear --all pypi
         poetry install --with dev
     else
         echo "Updating without development dependencies..."
+        poetry cache clear --all pypi
         poetry install
     fi
 fi

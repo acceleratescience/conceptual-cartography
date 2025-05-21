@@ -5,21 +5,18 @@ description = "Add your description here"
 readme = "README.md"
 packages = [{include = "src"}]
 
+[tool.poetry.scripts]
+experiment = "scripts.experiment:main"
+
 [tool.poetry.dependencies]
 python = ">=3.12,<3.13"
-torch = { version = "^2.7.0", source = "pytorch" }
 tqdm = "^4.67.1"
 transformers = "^4.51.3"
 scikit-learn = "^1.6.1"
 matplotlib = "^3.10.3"
 seaborn = "^0.13.2"
-spacy = "^3.8.5"
-nltk = "^3.9.1"
+click = "^8.2.1"
 
-[[tool.poetry.source]]
-name = "pytorch"
-url = "https://download.pytorch.org/whl/cpu"
-priority = "explicit"
 
 [tool.poetry.group.dev.dependencies]
 # Add your dev dependencies here

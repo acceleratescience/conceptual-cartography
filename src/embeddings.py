@@ -143,10 +143,7 @@ class ContextEmbedder:
                 collected_valid_contexts, collected_valid_indices
         """
 
-        if 2 * context_window > self.max_length and context_window is not None:
-            raise ValueError(
-                f"Context window {context_window} too large for model max length {self.max_length}. Max context window: {self.max_length // 2}"
-            )
+        
 
         target_word_lower = target_word.lower()
         pattern = r"\b" + re.escape(target_word_lower) + r"\b"
@@ -201,6 +198,12 @@ class ContextEmbedder:
                         target_indices_in_context.append(target_token_start)
 
         else:
+            print(f"Context window: {type(context_window)}")
+            print(f"Max length: {type(self.max_length)}")
+            if context_window is not None and 2 * context_window > self.max_length:
+                raise ValueError(
+                    f"Context window {context_window} too large for model max length {self.max_length}. Max context window: {self.max_length // 2}"
+                )   
             full_text = " ".join(s for s in sentences if s.strip()).lower()
             if not full_text:
                 return torch.zeros(1, self.model.config.hidden_size, dtype=self.model.dtype), [], []

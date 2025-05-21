@@ -14,3 +14,4 @@ poetry.lock
 notebooks/
 data/
 dump/
+output/
