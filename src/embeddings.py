@@ -198,8 +198,6 @@ class ContextEmbedder:
                         target_indices_in_context.append(target_token_start)
 
         else:
-            print(f"Context window: {type(context_window)}")
-            print(f"Max length: {type(self.max_length)}")
             if context_window is not None and 2 * context_window > self.max_length:
                 raise ValueError(
                     f"Context window {context_window} too large for model max length {self.max_length}. Max context window: {self.max_length // 2}"

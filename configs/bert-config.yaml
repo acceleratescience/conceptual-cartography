@@ -1,9 +1,0 @@
-model_config:
-  model_name: 'bert-base-uncased'
-data_config:
-  sentences_path: 'data/bnc_spoken.txt'
-  output_path: 'output/bert_embeddings'
-experiment_config:
-  model_batch_size: 32
-  context_window: None
-  target_word: 'duty'
