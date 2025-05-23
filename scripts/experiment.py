@@ -5,7 +5,7 @@ import torch
 
 from src.embeddings import ContextEmbedder
 from src.config import AppConfig
-from src.utils import load_config_from_yaml, load_sentences, save_embeddings
+from src.utils import load_config_from_yaml, load_sentences, save_output
 
 @click.command()
 @click.option(
@@ -45,17 +45,17 @@ def main(config_path_str: str):
 
     # 3. Run embedding process
     click.echo("Generating embeddings...")
-    final_embeddings, collected_contexts, collected_indices = embedder(
+    output = embedder(
         sentences=sentences,
         target_word=cfg.experiment_configs.target_word,
         context_window=cfg.experiment_configs.context_window,
         model_batch_size=cfg.experiment_configs.model_batch_size,
     )
 
-    if final_embeddings.numel() == 0 or final_embeddings.shape == (1, embedder.model.config.hidden_size) and torch.all(final_embeddings == 0):
+    if output['final_embeddings'].numel() == 0 or output['final_embeddings'].shape == (1, embedder.model.config.hidden_size) and torch.all(output['final_embeddings'] == 0):
         click.secho(f"No embeddings were generated for the target word '{cfg.experiment_configs.target_word}'. Check your data and target word.", fg="yellow")
     else:
-        click.echo(f"Generated {final_embeddings.shape[0]} embeddings of dimension {final_embeddings.shape[1]}.")
+        click.echo(f"Generated {output['final_embeddings'].shape[0]} embeddings of dimension {output['final_embeddings'].shape[1]}.")
 
         # 4. Save results
         output_dir = Path(cfg.data_configs.output_path)
@@ -63,7 +63,7 @@ def main(config_path_str: str):
         output_subdir = output_dir / cfg.model_configs.model_name.replace('/', '_') / cfg.experiment_configs.target_word
         
         click.echo(f"Saving results to: {output_subdir}...")
-        save_embeddings(str(output_subdir), final_embeddings, collected_contexts, collected_indices)
+        save_output(str(output_subdir), output)
         click.secho("✅ Experiment finished successfully!", fg="green")
 
 if __name__ == '__main__':

@@ -246,6 +246,7 @@ class ContextEmbedder:
             return torch.zeros(1, self.model.config.hidden_size, dtype=self.model.dtype), [], []
 
         all_embeddings_list = []
+        hidden_embeddings_list = []
         collected_valid_contexts = []
         collected_valid_indices = []
 
@@ -262,22 +263,45 @@ class ContextEmbedder:
 
             with torch.no_grad():
                 outputs = self.model(
-                    input_ids_tensor, attention_mask=attn_mask_tensor).last_hidden_state
+                    input_ids_tensor, attention_mask=attn_mask_tensor, output_hidden_states=True)
+                
+                hidden_states = outputs.hidden_states
+                last_hidden_state = outputs.last_hidden_state
 
             for j, target_tok_idx in enumerate(adjusted_target_token_indices):
 
-                if target_tok_idx != -1 and target_tok_idx < outputs.shape[1]:
+                if target_tok_idx != -1 and target_tok_idx < last_hidden_state.shape[1]:
 
-                    word_embedding = outputs[j,
+                    final_layer_embedding = last_hidden_state[j,
                                             target_tok_idx:target_tok_idx+1, :].mean(dim=0)
-                    all_embeddings_list.append(word_embedding.unsqueeze(
+                    all_embeddings_list.append(final_layer_embedding.unsqueeze(
                         0).cpu())
 
                     collected_valid_contexts.append(batch_contexts[j])
                     collected_valid_indices.append(batch_target_starts[j])
 
+                    hidden_states_for_target = []
+                    for state in hidden_states:
+
+                        state_embedding = state[j, target_tok_idx:target_tok_idx+1, :].mean(dim=0)
+                        hidden_states_for_target.append(state_embedding.unsqueeze(0).cpu())
+                    
+                    hidden_states_for_target = torch.cat(hidden_states_for_target, dim=0)
+                    hidden_embeddings_list.append(hidden_states_for_target)
+
         if not all_embeddings_list:
             return torch.zeros(1, self.model.config.hidden_size, dtype=self.model.dtype), [], []
 
         final_embeddings = torch.cat(all_embeddings_list, dim=0)
-        return final_embeddings, collected_valid_contexts, collected_valid_indices
+        hidden_embeddings = torch.stack(hidden_embeddings_list)
+
+        valid_sentences = [self.tokenizer.decode(context) for context in collected_valid_contexts]
+
+        output = {
+            'final_embeddings' : final_embeddings,
+            'hidden_embeddings' : hidden_embeddings,
+            'valid_contexts' : valid_sentences,
+            'valid_indices' : collected_valid_indices
+        }
+
+        return output

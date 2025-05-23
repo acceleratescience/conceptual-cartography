@@ -1,9 +1,9 @@
 model_configs:
   model_name: 'bert-base-uncased'
 data_configs:
-  sentences_path: 'data/testing_data/test.txt'
-  output_path: 'output/test_bert_embeddings'
+  sentences_path: 'data/bnc_spoken.txt'
+  output_path: 'output/bnc_bert_embeddings'
 experiment_configs:
   model_batch_size: 32
   context_window: None
-  target_word: 'bank'
+  target_word: 'duty'
