@@ -1,8 +1,8 @@
 model_configs:
-  model_name: 'bert-base-uncased'
+  model_name: 'sentence-transformers/all-MiniLM-L6-v2'
 data_configs:
   sentences_path: 'data/bnc_spoken.txt'
-  output_path: 'output/bnc_bert_embeddings'
+  output_path: 'output/bnc_sentence_embeddings'
 experiment_configs:
   model_batch_size: 32
   context_window: None

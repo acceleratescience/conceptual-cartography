@@ -24,12 +24,23 @@ class ContextEmbedder:
             strip_accents=False,
             clean_up_tokenization_spaces=False,
         )
-        self.model = AutoModel.from_pretrained(
-            model_name,
-            torch_dtype=torch.float16,
-            attn_implementation="sdpa",
-            trust_remote_code=True,
-        )
+
+        try:
+            self.model = AutoModel.from_pretrained(
+                model_name,
+                torch_dtype=torch.float16,
+                attn_implementation="sdpa",
+                trust_remote_code=True,
+            )
+            print("Using sdpa attention.")
+        except ValueError:
+            self.model = AutoModel.from_pretrained(
+                model_name,
+                torch_dtype=torch.float16,
+                attn_implementation="eager",
+                trust_remote_code=True,
+            )
+            print("Using eager attention.")
 
         if torch.cuda.is_available():
             self.device = torch.device("cuda:0")
