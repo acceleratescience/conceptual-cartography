@@ -1,0 +1,9 @@
+model_configs:
+  model_name: 'bert-base-uncased'
+data_configs:
+  sentences_path: 'test-data/test.txt'
+  output_path: 'output/test_bert_embeddings'
+experiment_configs:
+  model_batch_size: 32
+  context_window: None
+  target_word: 'spring'

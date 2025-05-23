@@ -36,3 +36,4 @@ def save_embeddings(output_path: str, embeddings: torch.Tensor, contexts: list, 
         for index in indices:
             f.write(f"{index}\n")
     print(f"Embeddings and associated data saved to {output_path}")
+    
