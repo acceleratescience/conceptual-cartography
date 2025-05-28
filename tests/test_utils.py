@@ -2,7 +2,7 @@ import pytest
 import torch
 from pathlib import Path
 from pydantic import ValidationError
-from src.utils import load_config_from_yaml, load_sentences, save_embeddings 
+from src.utils import load_config_from_yaml, load_sentences, save_output
 from src.config import AppConfig, ModelConfigs, DataConfigs, ExperimentConfigs
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
@@ -73,6 +73,7 @@ def test_load_config_from_yaml_invalid():
 
 
 # Test saving
+# TODO: this needs updating
 def test_save_embeddings_creates_files_and_verifies_content(tmp_path):
     """
     Test that save_embeddings creates the expected directory and files
@@ -85,7 +86,7 @@ def test_save_embeddings_creates_files_and_verifies_content(tmp_path):
     dummy_contexts = [[101, 102, 103], [201, 202]]
     dummy_indices = [0, 1]
 
-    save_embeddings(str(output_dir_in_tmp), dummy_embeddings, dummy_contexts, dummy_indices)
+    save_outputs(str(output_dir_in_tmp), dummy_embeddings, dummy_contexts, dummy_indices)
 
     assert output_dir_in_tmp.exists(), "Output directory should be created"
     assert output_dir_in_tmp.is_dir(), "Output path should be a directory"
