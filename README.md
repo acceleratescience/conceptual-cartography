@@ -8,6 +8,25 @@ There are a number of ways to run this repo.
 ## Installation of PyTorch
 Due to the nature of PyTorch installations across different hardware, we have left the installation of PyTorch to the user. For installation instructions, please refer to the [PyTorch installation page](https://pytorch.org/get-started/locally/). The majority of the development for this repo was done using ROCm...not CUDA.
 
+If using an AMD GPU, you can install PyTorch with ROCm support:
+
+```bash
+ pip3 install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/rocm6.4/
+```
+
+Then run the following:
+
+```bash
+export HIP_VISIBLE_DEVICES=0
+export HSA_OVERRIDE_GFX_VERSION=10.3.0  # adjust version for your GPU
+```
+To make it permanent:
+```bash
+echo 'export HIP_VISIBLE_DEVICES=0' >> ~/.bashrc
+echo 'export HSA_OVERRIDE_GFX_VERSION=10.3.0' >> ~/.bashrc  # adjust version for your GPU
+```
+then restart your terminal or run `source ~/.bashrc`. Don't forget to reactivate your virtual environment if you are using one.
+
 ## User interface
 You can run the code in this repo using the user interface. This is a simple web app that allows you to upload a text file and visualize the conceptual landscape. To run the user interface, follow these steps:
 

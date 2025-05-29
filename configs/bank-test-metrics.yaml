@@ -1,0 +1,13 @@
+model:
+  model_name: 'bert-base-uncased'
+data:
+  sentences_path: 'data/testing_data/bank_test.txt'
+  output_path: 'output/test_embeddings'
+experiment:
+  model_batch_size: 32
+  context_window: None
+  target_word: 'bank'
+metrics:
+  output_path: 'output/test_embeddings/metrics'
+  anisotropy_correction: False
+  metrics: ['similarity_matrix', 'mev', 'inter_similarity', 'intra_similarity', 'average_similarity', 'similarity_std']

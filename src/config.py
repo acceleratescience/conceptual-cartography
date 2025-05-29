@@ -13,6 +13,25 @@ class DataConfigs(BaseModel):
     output_path: str = 'output/test_embeddings'
 
 
+class MetricConfigs(BaseModel):
+    output_path: str = 'output/test_embeddings/metrics'
+    anisotropy_correction: bool = False
+    metrics: list = ['similarity_matrix', 'mev', 'inter_similarity', 'intra_similarity', 'average_similarity', 'similarity_std']
+
+    @field_validator('metrics', mode='before')
+    @classmethod
+    def check_metrics(cls, v: Any) -> Any:
+        valid_metrics = ['similarity_matrix', 'mev', 'inter_similarity', 'intra_similarity', 'average_similarity', 'similarity_std']
+        if isinstance(v, str):
+            v = [v]
+        if not isinstance(v, list):
+            raise ValueError(f"Metrics must be a list or a string, got {type(v)}")
+        for metric in v:
+            if metric not in valid_metrics:
+                raise ValueError(f"Invalid metric: {metric}. Valid metrics are: {valid_metrics}")
+        return v
+
+
 class ExperimentConfigs(BaseModel):
     model_batch_size: int = Field(default=32, gt=0)
     context_window: Optional[int] = Field(default=10, ge=0)
@@ -29,6 +48,7 @@ class ExperimentConfigs(BaseModel):
 
 
 class AppConfig(BaseModel):
-    model_configs: ModelConfigs = Field(default_factory=ModelConfigs)
-    data_configs: DataConfigs = Field(default_factory=DataConfigs)
-    experiment_configs: ExperimentConfigs = Field(default_factory=ExperimentConfigs)
+    model: ModelConfigs = Field(default_factory=ModelConfigs)
+    data: DataConfigs = Field(default_factory=DataConfigs)
+    experiment: ExperimentConfigs = Field(default_factory=ExperimentConfigs)
+    metric: MetricConfigs = Field(default_factory=MetricConfigs)

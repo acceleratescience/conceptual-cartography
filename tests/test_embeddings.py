@@ -31,4 +31,4 @@ def test_find_occurrences_in_sentence_static(args: Dict, expected_output: List[T
     results = ContextEmbedder._find_occurrences_in_sentence_static(args)
     assert results == expected_output
 
-# TODO: find a way to test the embedding...
+# TODO: Literally everything

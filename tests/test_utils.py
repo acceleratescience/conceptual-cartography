@@ -74,45 +74,55 @@ def test_load_config_from_yaml_invalid():
 
 # Test saving
 # TODO: this needs updating
-def test_save_embeddings_creates_files_and_verifies_content(tmp_path):
+def test_save_output_creates_files_and_verifies_content(tmp_path):
     """
-    Test that save_embeddings creates the expected directory and files
+    Test that save_output creates the expected directory and files
     with correct content in a temporary location.
     tmp_path is a pytest fixture providing a temporary directory path object.
     """
     output_dir_in_tmp = tmp_path / "experiment_results" / "run1"
     
-    dummy_embeddings = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
-    dummy_contexts = [[101, 102, 103], [201, 202]]
-    dummy_indices = [0, 1]
+    # Create dummy output dictionary matching the new format
+    dummy_output = {
+        'final_embeddings': torch.tensor([[1.0, 2.0], [3.0, 4.0]]),
+        'hidden_embeddings': torch.tensor([[[0.1, 0.2], [0.3, 0.4]], [[0.5, 0.6], [0.7, 0.8]]]),
+        'valid_contexts': [[101, 102, 103], [201, 202]],
+        'valid_indices': [0, 1]
+    }
 
-    save_outputs(str(output_dir_in_tmp), dummy_embeddings, dummy_contexts, dummy_indices)
+    save_output(str(output_dir_in_tmp), dummy_output)
 
     assert output_dir_in_tmp.exists(), "Output directory should be created"
     assert output_dir_in_tmp.is_dir(), "Output path should be a directory"
     
-    embeddings_file = output_dir_in_tmp / "embeddings.pt"
+    final_embeddings_file = output_dir_in_tmp / "final_embeddings.pt"
+    hidden_embeddings_file = output_dir_in_tmp / "hidden_embeddings.pt"
     contexts_file = output_dir_in_tmp / "contexts.txt"
     indices_file = output_dir_in_tmp / "indices.txt"
 
-    assert embeddings_file.exists(), "embeddings.pt should be created"
+    assert final_embeddings_file.exists(), "final_embeddings.pt should be created"
+    assert hidden_embeddings_file.exists(), "hidden_embeddings.pt should be created"
     assert contexts_file.exists(), "contexts.txt should be created"
     assert indices_file.exists(), "indices.txt should be created"
 
-    # Verify embeddings.pt
-    loaded_embeddings = torch.load(embeddings_file)
-    assert torch.equal(loaded_embeddings, dummy_embeddings), "Loaded embeddings should match saved ones"
+    # Verify final_embeddings.pt
+    loaded_final_embeddings = torch.load(final_embeddings_file)
+    assert torch.equal(loaded_final_embeddings, dummy_output['final_embeddings']), "Loaded final embeddings should match saved ones"
+
+    # Verify hidden_embeddings.pt
+    loaded_hidden_embeddings = torch.load(hidden_embeddings_file)
+    assert torch.equal(loaded_hidden_embeddings, dummy_output['hidden_embeddings']), "Loaded hidden embeddings should match saved ones"
 
     # Verify contexts.txt
     with open(contexts_file, "r", encoding="utf-8") as f:
         saved_contexts_lines = f.read().splitlines() 
     
-    expected_contexts_lines = [str(context) for context in dummy_contexts]
+    expected_contexts_lines = [str(context) for context in dummy_output['valid_contexts']]
     assert saved_contexts_lines == expected_contexts_lines, "Content of contexts.txt is incorrect"
 
     # Verify indices.txt
     with open(indices_file, "r", encoding="utf-8") as f:
         saved_indices_lines = f.read().splitlines()
         
-    expected_indices_lines = [str(index) for index in dummy_indices]
+    expected_indices_lines = [str(index) for index in dummy_output['valid_indices']]
     assert saved_indices_lines == expected_indices_lines, "Content of indices.txt is incorrect"

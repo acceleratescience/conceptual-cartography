@@ -49,15 +49,20 @@ if ! command -v poetry &> /dev/null; then
     # Run the installation command
     curl -sSL https://install.python-poetry.org | python3 -
     POETRY_INSTALL_STATUS=$?
-    
+
     if [ $POETRY_INSTALL_STATUS -ne 0 ]; then
         print_warning "Poetry installation failed!"
         ERRORS_FOUND=$((ERRORS_FOUND + 1))
     else
         export PATH="$HOME/.local/bin:$PATH"
         
-        # Verify installation succeeded
-        if ! command -v poetry &> /dev/null; then
+        # Force hash table refresh for the current shell
+        hash -r
+        
+        # Verify installation succeeded by checking the file directly first
+        if [ -f "$HOME/.local/bin/poetry" ]; then
+            print_success "Poetry installed successfully"
+        elif ! command -v poetry &> /dev/null; then
             print_warning "Poetry was installed but cannot be found in PATH!"
             echo -e "${YELLOW}    Try adding this to your shell profile:${NC}"
             echo "    export PATH=\"\$HOME/.local/bin:\$PATH\""
@@ -84,7 +89,7 @@ if [ ! -d ".venv" ]; then
         poetry install --with dev
     else
         echo "Installing without development dependencies..."
-        poetry install
+        poetry install --only main
     fi
     
     POETRY_VENV_STATUS=$?

@@ -6,6 +6,7 @@ import torch
 from src.embeddings import ContextEmbedder
 from src.config import AppConfig
 from src.utils import load_config_from_yaml, load_sentences, save_output
+from src.metrics import EmbeddingMetrics
 
 @click.command()
 @click.option(
@@ -23,20 +24,20 @@ def main(config_path_str: str):
     cfg: AppConfig = load_config_from_yaml(config_path)
 
     click.echo(f"🚀 Starting experiment with configuration from: {config_path}")
-    click.echo(f"Model: {cfg.model_configs.model_name}")
-    click.echo(f"Target word: '{cfg.experiment_configs.target_word}'")
+    click.echo(f"Model: {cfg.model.model_name}")
+    click.echo(f"Target word: '{cfg.experiment.target_word}'")
 
     # 1. Initialize ContextEmbedder
     click.echo("Initializing ContextEmbedder...")
-    embedder = ContextEmbedder(model_name=cfg.model_configs.model_name)
+    embedder = ContextEmbedder(model_name=cfg.model.model_name)
     click.echo(f"ContextEmbedder initialized with device: {embedder.device}")
 
     # 2. Load sentences
-    click.echo(f"Loading sentences from: {cfg.data_configs.sentences_path}...")
+    click.echo(f"Loading sentences from: {cfg.data.sentences_path}...")
     try:
-        sentences = load_sentences(cfg.data_configs.sentences_path)
+        sentences = load_sentences(cfg.data.sentences_path)
     except FileNotFoundError:
-        click.secho(f"Error: Sentences file not found at {cfg.data_configs.sentences_path}", fg="red")
+        click.secho(f"Error: Sentences file not found at {cfg.data.sentences_path}", fg="red")
         return
     click.echo(f"Loaded {len(sentences)} sentences.")
     if not sentences:
@@ -47,24 +48,26 @@ def main(config_path_str: str):
     click.echo("Generating embeddings...")
     output = embedder(
         sentences=sentences,
-        target_word=cfg.experiment_configs.target_word,
-        context_window=cfg.experiment_configs.context_window,
-        model_batch_size=cfg.experiment_configs.model_batch_size,
+        target_word=cfg.experiment.target_word,
+        context_window=cfg.experiment.context_window,
+        model_batch_size=cfg.experiment.model_batch_size,
     )
 
     if output['final_embeddings'].numel() == 0 or output['final_embeddings'].shape == (1, embedder.model.config.hidden_size) and torch.all(output['final_embeddings'] == 0):
-        click.secho(f"No embeddings were generated for the target word '{cfg.experiment_configs.target_word}'. Check your data and target word.", fg="yellow")
+        click.secho(f"No embeddings were generated for the target word '{cfg.experiment.target_word}'. Check your data and target word.", fg="yellow")
     else:
         click.echo(f"Generated {output['final_embeddings'].shape[0]} embeddings of dimension {output['final_embeddings'].shape[1]}.")
 
         # 4. Save results
-        output_dir = Path(cfg.data_configs.output_path)
+        output_dir = Path(cfg.data.output_path)
         # Add model name and target word to output path for better organization
-        output_subdir = output_dir / cfg.model_configs.model_name.replace('/', '_') / cfg.experiment_configs.target_word
+        output_subdir = output_dir / cfg.model.model_name.replace('/', '_') / cfg.experiment.target_word
         
-        click.echo(f"Saving results to: {output_subdir}...")
+        click.echo(f"Saving embedding results to: {output_subdir}...")
         save_output(str(output_subdir), output)
         click.secho("✅ Experiment finished successfully!", fg="green")
+
+    
 
 if __name__ == '__main__':
     main()
