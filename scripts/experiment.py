@@ -61,7 +61,7 @@ def main(config_path_str: str):
         # 4. Save results
         output_dir = Path(cfg.data.output_path)
         # Add model name and target word to output path for better organization
-        output_subdir = output_dir / cfg.model.model_name.replace('/', '_') / cfg.experiment.target_word
+        output_subdir = output_dir / cfg.model.model_name.replace('/', '_') / cfg.experiment.target_word / f"window_{cfg.experiment.context_window}"
         
         click.echo(f"Saving embedding results to: {output_subdir}...")
         save_output(str(output_subdir), output)

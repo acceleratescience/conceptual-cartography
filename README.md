@@ -18,12 +18,12 @@ Then run the following:
 
 ```bash
 export HIP_VISIBLE_DEVICES=0
-export HSA_OVERRIDE_GFX_VERSION=10.3.0  # adjust version for your GPU
+export HSA_OVERRIDE_GFX_VERSION=11.0.0  # adjust version for your GPU
 ```
 To make it permanent:
 ```bash
 echo 'export HIP_VISIBLE_DEVICES=0' >> ~/.bashrc
-echo 'export HSA_OVERRIDE_GFX_VERSION=10.3.0' >> ~/.bashrc  # adjust version for your GPU
+echo 'export HSA_OVERRIDE_GFX_VERSION=11.0.0' >> ~/.bashrc  # adjust version for your GPU
 ```
 then restart your terminal or run `source ~/.bashrc`. Don't forget to reactivate your virtual environment if you are using one.
 
