@@ -10,11 +10,12 @@ class ModelConfigs(BaseModel):
 
 class DataConfigs(BaseModel):
     sentences_path: str = 'data/testing_data/test.txt'
-    output_path: str = 'output/test_embeddings'
+    output_path: str = 'output'
 
 
 class MetricConfigs(BaseModel):
-    output_path: str = 'output/test_embeddings/metrics'
+    metrics_provided: bool = False
+    output_path: str = 'output'
     anisotropy_correction: bool = False
     metrics: list = ['similarity_matrix', 'mev', 'inter_similarity', 'intra_similarity', 'average_similarity', 'similarity_std']
 

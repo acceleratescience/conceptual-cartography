@@ -61,11 +61,17 @@ def main(config_path_str: str):
         # 4. Save results
         output_dir = Path(cfg.data.output_path)
         # Add model name and target word to output path for better organization
-        output_subdir = output_dir / cfg.model.model_name.replace('/', '_') / cfg.experiment.target_word / f"window_{cfg.experiment.context_window}"
+        output_subdir = output_dir / cfg.model.model_name.replace('/', '_') / f"window_{cfg.experiment.context_window}" / cfg.experiment.target_word 
         
         click.echo(f"Saving embedding results to: {output_subdir}...")
         save_output(str(output_subdir), output)
-        click.secho("✅ Experiment finished successfully!", fg="green")
+        click.secho("✅ Embeddings generated and saved successfully!", fg="green")
+
+    # 5. Calculate metrics
+    if cfg.metric.metrics_provided:
+        click.echo("Calculating metrics...")
+        
+        click.echo("Done")
 
     
 

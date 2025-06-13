@@ -8,6 +8,6 @@ experiment:
   context_window: None
   target_word: 'bank'
 metrics:
-  output_path: 'output/test_embeddings/metrics'
+  output_path: 'output'
   anisotropy_correction: False
   metrics: ['similarity_matrix', 'mev', 'inter_similarity', 'intra_similarity', 'average_similarity', 'similarity_std']

@@ -5,5 +5,5 @@ data:
   output_path: 'output'
 experiment:
   model_batch_size: 32
-  context_window: 20
-  target_word: 'duty'
+  context_window: None
+  target_word: 'theory'
