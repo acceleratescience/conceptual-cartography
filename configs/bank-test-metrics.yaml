@@ -1,8 +1,8 @@
 model:
-  model_name: 'bert-base-uncased'
+  model_name: 'sentence-transformers/all-MiniLM-L6-v2'
 data:
   sentences_path: 'data/testing_data/bank_test.txt'
-  output_path: 'output/test_embeddings'
+  output_path: 'output'
 experiment:
   model_batch_size: 32
   context_window: None
@@ -10,4 +10,5 @@ experiment:
 metrics:
   output_path: 'output'
   anisotropy_correction: False
+  layers: 'final'
   metrics: ['similarity_matrix', 'mev', 'inter_similarity', 'intra_similarity', 'average_similarity', 'similarity_std']

@@ -41,4 +41,11 @@ def save_output(output_path: str, output: torch.Tensor):
         for index in output['valid_indices']:
             f.write(f"{index}\n")
     print(f"Embeddings and associated data saved to {output_path}")
+
+def save_metrics(output_path: str, metrics: dict):
+    Path(output_path).mkdir(parents=True, exist_ok=True)
+
+    # Save metrics as a pt file
+    torch.save(metrics, Path(output_path) / "metrics.pt")
+    print(f"Metrics saved to {output_path}")
     

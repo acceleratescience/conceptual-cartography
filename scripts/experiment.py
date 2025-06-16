@@ -5,7 +5,7 @@ import torch
 
 from src.embeddings import ContextEmbedder
 from src.config import AppConfig
-from src.utils import load_config_from_yaml, load_sentences, save_output
+from src.utils import load_config_from_yaml, load_sentences, save_output, save_metrics
 from src.metrics import EmbeddingMetrics
 
 @click.command()
@@ -22,6 +22,9 @@ def main(config_path_str: str):
     """
     config_path = Path(config_path_str)
     cfg: AppConfig = load_config_from_yaml(config_path)
+
+    # Check if metrics are provided and set the flag
+    cfg.metric.metrics_provided = bool(cfg.metric.metrics)
 
     click.echo(f"🚀 Starting experiment with configuration from: {config_path}")
     click.echo(f"Model: {cfg.model.model_name}")
@@ -70,7 +73,14 @@ def main(config_path_str: str):
     # 5. Calculate metrics
     if cfg.metric.metrics_provided:
         click.echo("Calculating metrics...")
-        
+        final_layer = output['final_embeddings']
+        metrics = EmbeddingMetrics(embeddings=final_layer, labels=None)
+        metrics_dict = metrics.get_metrics(
+            corrected=cfg.metric.anisotropy_correction,
+            include=cfg.metric.metrics
+        )
+        output_subdir = output_dir / cfg.model.model_name.replace('/', '_') / f"window_{cfg.experiment.context_window}" / cfg.experiment.target_word 
+        save_metrics(str(output_subdir), metrics_dict)
         click.echo("Done")
 
     
