@@ -5,7 +5,7 @@ from sklearn.decomposition import PCA
 from sklearn.metrics import adjusted_rand_score, silhouette_score
 from sklearn.mixture import GaussianMixture
 from sklearn.model_selection import ParameterGrid
-import tqdm
+from tqdm import tqdm
 from dataclasses import dataclass
 
 import re
@@ -21,6 +21,9 @@ class Landscape:
     X_pca: np.ndarray
     consensus_labels: np.ndarray
     ari_scores: list
+    pca_components: int = None
+    cluster_count: int = None
+    covariance_type: str = None
 
 
     def create_plotly_landscape(self, contexts, target_word, width=50):
@@ -78,8 +81,8 @@ class Landscape:
                 text=f'{target_word}',
                 font=dict(size=20, color='rgb(49,51,63)') 
             ),
-            width=800,
-            height=800,
+            width=600,
+            height=600,
             paper_bgcolor='rgba(255,255,255,0.8)',
             plot_bgcolor='rgba(255,255,255,0.8)',
             xaxis=dict(
@@ -155,7 +158,7 @@ def optimize_clustering(embeddings, pca_components_range, n_clusters_range,
                 'explained_variance_ratio': np.sum(pca.explained_variance_ratio_)
             })
             
-            print(f"Params: {params}, Silhouette Score: {score:.4f}, Explained Variance Ratio: {np.sum(pca.explained_variance_ratio_):.4f}")
+
             if score > best_score:
                 best_score = score
                 best_params = params.copy()
@@ -178,7 +181,7 @@ def optimize_clustering(embeddings, pca_components_range, n_clusters_range,
     return best, results_df
 
 
-def get_consensus_labels_and_ARI(embeddings,
+def get_landscape(embeddings,
                                  optimal_params,
                                  forced_components=False,
                                  labels=True):
@@ -259,7 +262,12 @@ def get_consensus_labels_and_ARI(embeddings,
         'Z': mean_landscape,
         'X_pca': X_pca,
         'consensus_labels': consensus_labels,
-        'ari_scores': ari_scores
+        'ari_scores': ari_scores,
+        'pca_components': n_components,
+        'cluster_count': n_clusters,
+        'covariance_type': optimal_params['covariance_type']
     }
+
+    landscape = Landscape(**landscape)
 
     return landscape

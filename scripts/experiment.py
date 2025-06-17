@@ -2,11 +2,13 @@
 import click
 from pathlib import Path
 import torch
+from tqdm import tqdm
 
 from src.embeddings import ContextEmbedder
 from src.config import AppConfig
-from src.utils import load_config_from_yaml, load_sentences, save_output, save_metrics
+from src.utils import load_config_from_yaml, load_sentences, save_output, save_metrics, save_landscape
 from src.metrics import EmbeddingMetrics
+from src.landscapes import get_landscape, optimize_clustering
 
 @click.command()
 @click.option(
@@ -21,10 +23,14 @@ def main(config_path_str: str):
     Runs an embedding experiment based on the provided YAML configuration.
     """
     config_path = Path(config_path_str)
-    cfg: AppConfig = load_config_from_yaml(config_path)
+    try:
+        cfg: AppConfig = load_config_from_yaml(config_path)
+    except ValueError as e:
+        return
 
     # Check if metrics are provided and set the flag
-    cfg.metric.metrics_provided = bool(cfg.metric.metrics)
+    cfg.metrics.metrics_provided = bool(cfg.metrics.metrics)
+    cfg.landscapes.landscapes_provided = bool(cfg.landscapes.pca_min)
 
     click.echo(f"🚀 Starting experiment with configuration from: {config_path}")
     click.echo(f"Model: {cfg.model.model_name}")
@@ -63,7 +69,6 @@ def main(config_path_str: str):
 
         # 4. Save results
         output_dir = Path(cfg.data.output_path)
-        # Add model name and target word to output path for better organization
         output_subdir = output_dir / cfg.model.model_name.replace('/', '_') / f"window_{cfg.experiment.context_window}" / cfg.experiment.target_word 
         
         click.echo(f"Saving embedding results to: {output_subdir}...")
@@ -71,19 +76,58 @@ def main(config_path_str: str):
         click.secho("✅ Embeddings generated and saved successfully!", fg="green")
 
     # 5. Calculate metrics
-    if cfg.metric.metrics_provided:
+    if cfg.metrics.metrics_provided:
         click.echo("Calculating metrics...")
-        final_layer = output['final_embeddings']
-        metrics = EmbeddingMetrics(embeddings=final_layer, labels=None)
-        metrics_dict = metrics.get_metrics(
-            corrected=cfg.metric.anisotropy_correction,
-            include=cfg.metric.metrics
-        )
-        output_subdir = output_dir / cfg.model.model_name.replace('/', '_') / f"window_{cfg.experiment.context_window}" / cfg.experiment.target_word 
-        save_metrics(str(output_subdir), metrics_dict)
-        click.echo("Done")
+        layers = cfg.metrics.layers
+        if layers == 'final':
+            layer = 'final'
+            final_layer = output['final_embeddings']
+            metrics = EmbeddingMetrics(embeddings=final_layer, labels=None)
+            metrics_dict = metrics.get_metrics(
+                corrected=cfg.metrics.anisotropy_correction,
+                include=cfg.metrics.metrics
+            )
+            output_subdir = output_dir / cfg.model.model_name.replace('/', '_') / f"window_{cfg.experiment.context_window}" / cfg.experiment.target_word / "metrics"
+            save_metrics(str(output_subdir), layer, metrics_dict)
+        else:
+            if layers == 'all':
+                layers = range(output['hidden_embeddings'].shape[1])
+            for layer in tqdm(layers, desc="Processing layers..."):
+                hidden_layer = output['hidden_embeddings'][:, layer, :]
+                metrics = EmbeddingMetrics(embeddings=hidden_layer, labels=None)
+                metrics_dict = metrics.get_metrics(
+                    corrected=cfg.metrics.anisotropy_correction,
+                    include=cfg.metrics.metrics
+                )
+                output_subdir = output_dir / cfg.model.model_name.replace('/', '_') / f"window_{cfg.experiment.context_window}" / cfg.experiment.target_word / "metrics"
+                save_metrics(str(output_subdir), layer, metrics_dict)
+        click.secho("✅ Metrics calculated and saved successfully!", fg="green")
 
-    
+    # 6. Generate landscapes if configured
+    if cfg.landscapes.landscapes_provided:
+        click.echo("Generating landscapes...")
+        
+        if layers == 'final':
+            embeddings = output['final_embeddings']
+        else:
+
+            for layer in tqdm(layers, desc="Generating landscapes..."):
+                embeddings = output['hidden_embeddings'][:, layer, :]
+                best_params, df = optimize_clustering(
+                    hidden_layer,
+                    pca_components_range=range(cfg.landscapes.pca_min, cfg.landscapes.pca_max + 1, cfg.landscapes.pca_step),
+                    n_clusters_range=range(cfg.landscapes.cluster_min, cfg.landscapes.cluster_max + 1, cfg.landscapes.cluster_step),
+                )
+
+                landscape = get_landscape(
+                    embeddings,
+                    best_params['best_params']
+                )
+
+                if cfg.landscapes.generate_all:
+                    output_subdir = output_dir / cfg.model.model_name.replace('/', '_') / f"window_{cfg.experiment.context_window}" / cfg.experiment.target_word / "landscapes"
+                    save_landscape(str(output_subdir), layer, landscape)
+        click.secho("✅ Landscapes calculated and saved successfully!", fg="green")
 
 if __name__ == '__main__':
     main()
