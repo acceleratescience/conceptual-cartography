@@ -183,20 +183,15 @@ def optimize_clustering(embeddings, pca_components_range, n_clusters_range,
 
 def get_landscape(embeddings,
                                  optimal_params,
-                                 forced_components=False,
+                                 forced_components=True,
                                  labels=True):
     
-    if forced_components:
-        n_components = forced_components
-    else:
-        n_components = optimal_params['n_components']
-    
-
+    n_components = optimal_params['n_components']
     n_clusters = optimal_params['n_clusters']
 
     X = embeddings
 
-    X_pca = PCA(n_components=n_components).fit_transform(X)
+    X_pca = PCA(n_components=2).fit_transform(X)
 
     n_init = 100 
 
