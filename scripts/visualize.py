@@ -1,29 +1,24 @@
-import streamlit as st
-import torch
+import click
+import subprocess
+import sys
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+@click.command()
+@click.option(
+    '--path',
+    'path_str',
+    required=True,
+    type=click.Path(exists=True, file_okay=False, dir_okay=True, readable=True),
+    help="Path to the output directory containing metrics and landscapes."
+)
+def main(path_str: str):
+    """
+    Launches Streamlit visualization for the specified output directory.
+    """
+    
+    subprocess.run(
+        [sys.executable, "-m", "streamlit", "run", "src/visualize.py", "--", path_str],
+        stderr=subprocess.DEVNULL) # This suppresses Streamlit's stderr output when looking at torch stuff.
 
-model_name = 'BAAI_bge-base-en-v1.5'
-
-path = PROJECT_ROOT / 'output' / model_name /'window_None' / 'theory'
-
-metrics_path = path / 'metrics/metrics_layer-10.pt'
-landscape_path = path / 'landscapes/landscape_layer-10.pt'
-contexts_path = path / 'contexts.txt'
-
-# Load metrics
-metrics = torch.load(metrics_path, weights_only=False)
-landscape = torch.load(landscape_path, weights_only=False)
-with open(contexts_path, 'r', encoding='utf-8') as f:
-    context = [line.strip() for line in f if line.strip()]
-
-
-
-st.title(f"Visualizing Landscapes for {model_name}")
-st.subheader("Metrics")
-st.write(metrics)
-
-st.subheader("Landscape")
-# plotting the landscape
-st.plotly_chart(landscape.create_plotly_landscape(context, 'theory', width=50))
+if __name__ == "__main__":
+    main()

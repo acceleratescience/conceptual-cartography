@@ -75,10 +75,45 @@ def main(config_path_str: str):
         save_output(str(output_subdir), output)
         click.secho("✅ Embeddings generated and saved successfully!", fg="green")
 
-    # 5. Calculate metrics
+    # Now we can check to see if the metrics and the landscapes are provided. If the landscapes are provided,
+    # that means we will also be generating labels. If this is the case, the metrics need to be calculated after the landscapes.
+    # 
+
+    labels = None
+
+    # 5. Generate landscapes if configured
+    if cfg.landscapes.landscapes_provided:
+        layers = cfg.metrics.layers
+        labels = []
+        click.echo("Generating landscapes...")
+        
+        if layers == 'final':
+            embeddings = output['final_embeddings']
+        else:
+            for layer in tqdm(layers, desc="Generating landscapes..."):
+                embeddings = output['hidden_embeddings'][:, layer, :]
+                best_params, df = optimize_clustering(
+                    embeddings,
+                    pca_components_range=range(cfg.landscapes.pca_min, cfg.landscapes.pca_max + 1, cfg.landscapes.pca_step),
+                    n_clusters_range=range(cfg.landscapes.cluster_min, cfg.landscapes.cluster_max + 1, cfg.landscapes.cluster_step),
+                )
+
+                landscape = get_landscape(
+                    embeddings,
+                    best_params['best_params']
+                )
+
+                if cfg.landscapes.generate_all:
+                    output_subdir = output_dir / cfg.model.model_name.replace('/', '_') / f"window_{cfg.experiment.context_window}" / cfg.experiment.target_word / "landscapes"
+                    save_landscape(str(output_subdir), layer, landscape)
+
+                labels.append(landscape.consensus_labels)
+        click.secho("✅ Landscapes calculated and saved successfully!", fg="green")
+
+    # 6. Calculate metrics
     if cfg.metrics.metrics_provided:
         click.echo("Calculating metrics...")
-        layers = cfg.metrics.layers
+        
         if layers == 'final':
             layer = 'final'
             final_layer = output['final_embeddings']
@@ -92,9 +127,9 @@ def main(config_path_str: str):
         else:
             if layers == 'all':
                 layers = range(output['hidden_embeddings'].shape[1])
-            for layer in tqdm(layers, desc="Processing layers..."):
+            for i, layer in tqdm(enumerate(layers), desc="Processing layers..."):
                 hidden_layer = output['hidden_embeddings'][:, layer, :]
-                metrics = EmbeddingMetrics(embeddings=hidden_layer, labels=None)
+                metrics = EmbeddingMetrics(embeddings=hidden_layer, labels=labels[i] if labels else None)
                 metrics_dict = metrics.get_metrics(
                     corrected=cfg.metrics.anisotropy_correction,
                     include=cfg.metrics.metrics
@@ -103,31 +138,7 @@ def main(config_path_str: str):
                 save_metrics(str(output_subdir), layer, metrics_dict)
         click.secho("✅ Metrics calculated and saved successfully!", fg="green")
 
-    # 6. Generate landscapes if configured
-    if cfg.landscapes.landscapes_provided:
-        click.echo("Generating landscapes...")
-        
-        if layers == 'final':
-            embeddings = output['final_embeddings']
-        else:
-
-            for layer in tqdm(layers, desc="Generating landscapes..."):
-                embeddings = output['hidden_embeddings'][:, layer, :]
-                best_params, df = optimize_clustering(
-                    hidden_layer,
-                    pca_components_range=range(cfg.landscapes.pca_min, cfg.landscapes.pca_max + 1, cfg.landscapes.pca_step),
-                    n_clusters_range=range(cfg.landscapes.cluster_min, cfg.landscapes.cluster_max + 1, cfg.landscapes.cluster_step),
-                )
-
-                landscape = get_landscape(
-                    embeddings,
-                    best_params['best_params']
-                )
-
-                if cfg.landscapes.generate_all:
-                    output_subdir = output_dir / cfg.model.model_name.replace('/', '_') / f"window_{cfg.experiment.context_window}" / cfg.experiment.target_word / "landscapes"
-                    save_landscape(str(output_subdir), layer, landscape)
-        click.secho("✅ Landscapes calculated and saved successfully!", fg="green")
+    
 
 if __name__ == '__main__':
     main()
