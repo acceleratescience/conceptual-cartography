@@ -15,6 +15,8 @@ wheels/
 poetry.lock
 
 notebooks/
-data/
+data/bnc_dataset/
+data/bnc_spoken.txt
+data/Theory_annotations.csv
 dump/
 output/
