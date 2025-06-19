@@ -1,13 +1,22 @@
 model:
-  model_name: 'bert-base-uncased'
+  model_name: 'BAAI/bge-base-en-v1.5'
 data:
   sentences_path: 'data/testing_data/bank_test.txt'
-  output_path: 'output/test_embeddings'
+  output_path: 'output'
 experiment:
   model_batch_size: 32
   context_window: None
   target_word: 'bank'
 metrics:
-  output_path: 'output'
   anisotropy_correction: False
+  layers: 'all'
   metrics: ['similarity_matrix', 'mev', 'inter_similarity', 'intra_similarity', 'average_similarity', 'similarity_std']
+landscapes:
+  pca_min: 2
+  pca_max: 5
+  pca_step: 1
+  cluster_min: 2
+  cluster_max: 5
+  cluster_step: 1
+  generate_all: True
+  save_optimization: True

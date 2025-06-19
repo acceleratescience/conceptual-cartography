@@ -41,4 +41,17 @@ def save_output(output_path: str, output: torch.Tensor):
         for index in output['valid_indices']:
             f.write(f"{index}\n")
     print(f"Embeddings and associated data saved to {output_path}")
+
+def save_metrics(output_path: str, layer, metrics: dict):
+    Path(output_path).mkdir(parents=True, exist_ok=True)
+
+    # Save metrics as a pt file
+    torch.save(metrics, Path(output_path) / f"metrics_layer-{layer}.pt")
+
+    
+def save_landscape(output_path: str, layer, landscape: dict):
+    Path(output_path).mkdir(parents=True, exist_ok=True)
+
+    # Save landscape as a pt file
+    torch.save(landscape, Path(output_path) / f"landscape_layer-{layer}.pt")
     

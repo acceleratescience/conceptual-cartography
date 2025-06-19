@@ -1,7 +1,13 @@
 import pytest
 from pydantic import ValidationError
 
-from src.config import ModelConfigs, DataConfigs, ExperimentConfigs, AppConfig
+from src.config import (
+    ModelConfigs,
+    DataConfigs,
+    MetricConfigs,
+    ExperimentConfigs,
+    AppConfig
+)
 
 
 """                                                                  
