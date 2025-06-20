@@ -24,13 +24,10 @@ def load_sentences(file_path: str) -> list[str]:
         sentences = [line.strip() for line in f if line.strip()]
     return sentences
 
+
 def save_output(output_path: str, output: torch.Tensor):
     Path(output_path).mkdir(parents=True, exist_ok=True)
-
-    # Final embeddings
     torch.save(output['final_embeddings'], Path(output_path) / "final_embeddings.pt")
-
-    # Hidden layers in format [total_words, hidden_layer, embed_d]
     torch.save(output['hidden_embeddings'], Path(output_path) / "hidden_embeddings.pt")
     
     with open(Path(output_path) / "contexts.txt", "w", encoding="utf-8") as f:
@@ -42,16 +39,13 @@ def save_output(output_path: str, output: torch.Tensor):
             f.write(f"{index}\n")
     print(f"Embeddings and associated data saved to {output_path}")
 
+
 def save_metrics(output_path: str, layer, metrics: dict):
     Path(output_path).mkdir(parents=True, exist_ok=True)
-
-    # Save metrics as a pt file
     torch.save(metrics, Path(output_path) / f"metrics_layer-{layer}.pt")
 
     
 def save_landscape(output_path: str, layer, landscape: dict):
     Path(output_path).mkdir(parents=True, exist_ok=True)
-
-    # Save landscape as a pt file
     torch.save(landscape, Path(output_path) / f"landscape_layer-{layer}.pt")
     
