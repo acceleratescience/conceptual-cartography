@@ -1,5 +1,5 @@
 model:
-  model_name: 'bert-large-uncased'
+  model_name: 'sentence-transformers/all-MiniLM-L6-v2'
 data:
   sentences_path: 'data/bnc_spoken.txt'
   output_path: 'output'
