@@ -10,7 +10,14 @@ To run this code, we first recommend forking the repo so you have your own versi
 git clone https://github.com/acceleratescience/conceptual-cartography.git
 ```
 
-The `conceptual-engineering` repo comes with a `setup.sh` file that will handle most of the installation and environment management for you. This means that if you want to run this software on a remote cloud server, then it's as simple as spinning up a CPU or GPU instance with some base Linux such as Ubuntu, cloning the repo, and running the setup
+The `conceptual-engineering` repo comes with a `setup.sh` file that will handle most of the installation and environment management for you. This means that if you want to run this software on a remote cloud server, then it's as simple as spinning up a CPU or GPU instance with some base Linux such as Ubuntu, cloning the repo, and running the setup.
+
+We first recommend installing python 3.12. Instructions for Linux are below, and other operating systems such as MacOS are easy to find.
+
+```bash
+sudo apt-get update
+sudo apt-get install python3.12
+```
 
 ```bash
 source ./setup.sh
