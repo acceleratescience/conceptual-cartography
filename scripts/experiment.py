@@ -4,11 +4,18 @@ from pathlib import Path
 import torch
 from tqdm import tqdm
 
-from src.embeddings import ContextEmbedder
-from src.config import AppConfig
-from src.utils import load_config_from_yaml, load_sentences, save_output, save_metrics, save_landscape
-from src.metrics import EmbeddingMetrics
-from src.landscapes import get_landscape, optimize_clustering
+from src import (
+    ContextEmbedder,
+    AppConfig,
+    load_config_from_yaml,
+    load_sentences,
+    save_output,
+    save_metrics,
+    save_landscape,
+    EmbeddingMetrics,
+    get_landscape,
+    optimize_clustering,
+)
 
 @click.command()
 @click.option(

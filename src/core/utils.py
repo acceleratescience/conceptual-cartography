@@ -1,7 +1,7 @@
 # utils.py
 import yaml
 from pathlib import Path
-from src.config import AppConfig
+from .config import AppConfig
 from pydantic import ValidationError
 
 import torch
