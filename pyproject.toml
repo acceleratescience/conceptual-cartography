@@ -1,6 +1,7 @@
 [tool.poetry]
 name = "conceptual-cartography"
 version = "0.1.0"
+authors = ['R Daniels', 'N Haket']
 description = "Add your description here"
 readme = "README.md"
 packages = [{include = "src"}]

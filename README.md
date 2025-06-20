@@ -3,7 +3,23 @@ Conceptual Landscaping with BERT and Friends
 
 Welcome to the Conceptual Landscaping with BERT and Friends repository! This project is designed to help you explore and visualize the conceptual landscape of a given text using advanced language models like BERT, RoBERTa, and DistilBERT. The goal is to provide a user-friendly interface for analyzing and understanding the relationships between different concepts in your text.
 
-There are a number of ways to run this repo.
+## Installation
+To run this code, we first recommend forking the repo so you have your own version to play with. Clone the repo
+
+```bash
+git clone https://github.com/acceleratescience/conceptual-cartography.git
+```
+
+The `conceptual-engineering` repo comes with a `setup.sh` file that will handle most of the installation and environment management for you. This means that if you want to run this software on a remote cloud server, then it's as simple as spinning up a CPU or GPU instance with some base Linux such as Ubuntu, cloning the repo, and running the setup
+
+```bash
+source ./setup.sh
+```
+You should see something like the following:
+
+```bash
+
+```
 
 ## Installation of PyTorch
 Due to the nature of PyTorch installations across different hardware, we have left the installation of PyTorch to the user. For installation instructions, please refer to the [PyTorch installation page](https://pytorch.org/get-started/locally/). The majority of the development for this repo was done using ROCm...not CUDA.
