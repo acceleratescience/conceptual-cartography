@@ -28,6 +28,7 @@ from .core import (
     MetricConfigs,
     LandscapeConfigs,
     ContextEmbedder,
+    EmbeddingResult,
     load_config_from_yaml,
     load_sentences,
     save_output,
@@ -60,6 +61,7 @@ __all__ = [
     
     # Core functionality
     "ContextEmbedder",
+    "EmbeddingResult",
     "load_config_from_yaml",
     "load_sentences",
     "save_output", 

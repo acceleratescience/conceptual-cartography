@@ -5,6 +5,21 @@ from sklearn.decomposition import PCA
 from sklearn.metrics.pairwise import cosine_similarity
 
 @dataclass
+class MetricsResult:
+    """Results from embedding metrics computation."""
+    mev: float
+    average_similarity: float
+    similarity_std: float
+    similarity_matrix: np.ndarray
+    intra_similarity: Optional[float] = None
+    inter_similarity: Optional[float] = None
+
+
+class MetricsComputer:
+    """Compute metrics from embeddings"""
+    
+
+@dataclass
 class EmbeddingMetrics:
     """
     Compute and store embedding metrics with optional anisotropic correction.

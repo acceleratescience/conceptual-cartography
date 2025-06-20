@@ -12,7 +12,10 @@ from .config import (
     MetricConfigs,
     LandscapeConfigs,
 )
-from .embeddings import ContextEmbedder
+from .embeddings import (
+    ContextEmbedder,
+    EmbeddingResult
+)
 from .utils import (
     load_config_from_yaml,
     load_sentences,
@@ -31,6 +34,7 @@ __all__ = [
     "LandscapeConfigs",
     # Embedding functionality
     "ContextEmbedder",
+    "EmbeddingResult",
     # Utility functions
     "load_config_from_yaml",
     "load_sentences", 
