@@ -1,12 +1,12 @@
 model:
   model_name: 'sentence-transformers/all-MiniLM-L6-v2'
 data:
-  sentences_path: 'data/testing_data/bank_test.txt'
+  sentences_path: 'data/bnc_spoken.txt'
   output_path: 'output'
 experiment:
   model_batch_size: 32
   context_window: None
-  target_word: 'bank'
+  target_word: 'marriage'
 metrics:
   anisotropy_correction: False
   layers: 'all'

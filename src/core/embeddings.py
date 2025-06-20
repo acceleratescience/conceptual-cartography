@@ -9,10 +9,27 @@ import torch
 from tqdm import tqdm
 from transformers import AutoModel, AutoTokenizer
 from transformers.utils import logging as transformers_logging
+from dataclasses import dataclass
 
 # suppress warnings, not sure why this is needed
 transformers_logging.set_verbosity(40)
 
+
+@dataclass
+class EmbeddingResult:
+    final_embeddings: torch.Tensor
+    hidden_embeddings: torch.Tensor
+    valid_contexts: List[str]
+    valid_indices: List[int]
+
+    def num_embeddings(self) -> int:
+        return self.final_embeddings.shape[0]
+    
+    def embedding_layers(self) -> int:
+        return self.final_embeddings.shape[1]
+    
+    def embedding_dim(self) -> int:
+        return self.final_embeddings.shape[2]
 
 class ContextEmbedder:
     def __init__(self, model_name: str):
@@ -308,11 +325,11 @@ class ContextEmbedder:
 
         valid_sentences = [self.tokenizer.decode(context) for context in collected_valid_contexts]
 
-        output = {
-            'final_embeddings' : final_embeddings,
-            'hidden_embeddings' : hidden_embeddings,
-            'valid_contexts' : valid_sentences,
-            'valid_indices' : collected_valid_indices
-        }
+        output = EmbeddingResult(
+            final_embeddings=final_embeddings,
+            hidden_embeddings=hidden_embeddings,
+            valid_contexts=valid_sentences,
+            valid_indices=collected_valid_indices
+        )
 
         return output

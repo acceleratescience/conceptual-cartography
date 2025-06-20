@@ -33,12 +33,13 @@ def main():
     """
     Visualizes landscapes and metrics from the specified output directory.
     """
-    # Get path from command line arguments
-    if len(sys.argv) != 2:
-        st.error("Usage: streamlit run visualize.py <path_to_directory>")
+    # Get path and target word from command line arguments
+    if len(sys.argv) != 3:
+        st.error("Usage: streamlit run visualize.py <path_to_directory> <target_word>")
         st.stop()
     
     path_str = sys.argv[1]
+    target_word = sys.argv[2]
     path = Path(path_str)
     
     if not path.exists():
@@ -123,7 +124,7 @@ def main():
     if landscape is not None:
         st.subheader(f"Landscape - Layer {current_layer}")
         try:
-            st.plotly_chart(landscape.create_plotly_landscape(context, 'theory', width=50))
+            st.plotly_chart(landscape.create_plotly_landscape(context, target_word, width=50))
         except Exception as e:
             st.error(f"Error creating landscape plot: {e}")
     else:
@@ -142,6 +143,7 @@ def main():
         st.write(f"**Metrics file:** {'✓' if metrics_path.exists() else '✗'} {metrics_path.name}")
         st.write(f"**Landscape file:** {'✓' if landscape_path.exists() else '✗'} {landscape_path.name}")
         st.write(f"**Contexts file:** {'✓' if contexts_path.exists() else '✗'} {contexts_path.name}")
+        st.write(f"**Target word:** {target_word}")
 
 if __name__ == "__main__":
     main()
