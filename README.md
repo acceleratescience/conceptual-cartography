@@ -20,6 +20,7 @@ You should see something like the following:
 ```bash
 
 ```
+You can also run the setup with development dependencies by adding the flag
 
 ## Installation of PyTorch
 Due to the nature of PyTorch installations across different hardware, we have left the installation of PyTorch to the user. For installation instructions, please refer to the [PyTorch installation page](https://pytorch.org/get-started/locally/). The majority of the development for this repo was done using ROCm...not CUDA.
