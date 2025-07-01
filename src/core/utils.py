@@ -27,15 +27,15 @@ def load_sentences(file_path: str) -> list[str]:
 
 def save_output(output_path: str, output: torch.Tensor):
     Path(output_path).mkdir(parents=True, exist_ok=True)
-    torch.save(output['final_embeddings'], Path(output_path) / "final_embeddings.pt")
-    torch.save(output['hidden_embeddings'], Path(output_path) / "hidden_embeddings.pt")
+    torch.save(output.final_embeddings, Path(output_path) / "final_embeddings.pt")
+    torch.save(output.hidden_embeddings, Path(output_path) / "hidden_embeddings.pt")
     
     with open(Path(output_path) / "contexts.txt", "w", encoding="utf-8") as f:
-        for context in output['valid_contexts']:
+        for context in output.valid_contexts:
             f.write(f"{context}\n")
             
     with open(Path(output_path) / "indices.txt", "w", encoding="utf-8") as f:
-        for index in output['valid_indices']:
+        for index in output.valid_indices:
             f.write(f"{index}\n")
     print(f"Embeddings and associated data saved to {output_path}")
 

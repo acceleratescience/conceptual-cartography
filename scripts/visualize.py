@@ -24,7 +24,6 @@ def main(config_path_str: str):
         click.secho(f"Error loading config: {e}", fg="red")
         return
 
-    # Construct the output directory path using the same logic as experiment.py
     output_dir = Path(cfg.data.output_path)
     target_dir = output_dir / cfg.model.model_name.replace('/', '_') / f"window_{cfg.experiment.context_window}" / cfg.experiment.target_word
     
@@ -33,9 +32,16 @@ def main(config_path_str: str):
         click.secho("Make sure you have run the experiment first.", fg="yellow")
         return
     
+    project_root = Path(__file__).parent.parent
+    streamlit_app = project_root / "streamlit" / "landscape_viewer.py"
+    
+    if not streamlit_app.exists():
+        click.secho(f"Error: Streamlit app not found: {streamlit_app}", fg="red")
+        return
+    
     subprocess.run(
-        [sys.executable, "-m", "streamlit", "run", "src/visualization/visualize.py", "--", str(target_dir), cfg.experiment.target_word],
-        stderr=subprocess.DEVNULL) # This suppresses Streamlit's stderr output when looking at torch stuff.
+        [sys.executable, "-m", "streamlit", "run", str(streamlit_app), "--", str(target_dir), cfg.experiment.target_word],
+        stderr=subprocess.DEVNULL) # This suppresses Streamlit's stderr output when looking at torch stuff
 
 if __name__ == "__main__":
     main()

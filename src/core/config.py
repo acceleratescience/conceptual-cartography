@@ -102,7 +102,7 @@ class AppConfig(BaseModel):
                 num_layers = getattr(config, 'num_encoder_layers', 0)
 
             if num_layers == 0:
-                 # Jus in case the model has no layers for some reason...
+                 # Just in case the model has no layers for some reason...
                  print(f"Warning: Could not determine number of layers for {model_name}. Skipping layer validation.")
                  return self
 
