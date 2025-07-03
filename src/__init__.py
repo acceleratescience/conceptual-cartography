@@ -28,6 +28,7 @@ from .core import (
     MetricConfigs,
     LandscapeConfigs,
     ContextEmbedder,
+    EmbeddingResult,
     load_config_from_yaml,
     load_sentences,
     save_output,
@@ -37,18 +38,17 @@ from .core import (
 
 # Analysis functionality
 from .analysis import (
-    EmbeddingMetrics,
+    MetricsComputer,
+    MetricsResult,
     Landscape,
-    get_landscape,
-    optimize_clustering,
-    average_pairwise_cosine_similarity,
-    mev,
-    intra_inter_similarity,
+    LandscapeComputer,
+    get_landscape,  # Backwards compatibility
+    optimize_clustering,  # Backwards compatibility
 )
 
 __version__ = "0.1.0"
 
-# Define what gets imported with "from src import *"
+
 __all__ = [
     # Core configuration
     "AppConfig",
@@ -60,6 +60,7 @@ __all__ = [
     
     # Core functionality
     "ContextEmbedder",
+    "EmbeddingResult",
     "load_config_from_yaml",
     "load_sentences",
     "save_output", 
@@ -67,13 +68,12 @@ __all__ = [
     "save_landscape",
     
     # Analysis
-    "EmbeddingMetrics",
+    "MetricsComputer",
+    "MetricsResult",
     "Landscape",
-    "get_landscape",
-    "optimize_clustering",
-    "average_pairwise_cosine_similarity",
-    "mev",
-    "intra_inter_similarity",
+    "LandscapeComputer",
+    "get_landscape",  # Backwards compatibility
+    "optimize_clustering",  # Backwards compatibility
     
     # Metadata
     "__version__",

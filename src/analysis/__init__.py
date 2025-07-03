@@ -5,27 +5,24 @@ and generating conceptual landscapes.
 """
 
 from .metrics import (
-    EmbeddingMetrics,
-    average_pairwise_cosine_similarity,
-    mev,
-    intra_inter_similarity,
+    MetricsComputer,
+    MetricsResult,
 )
 from .landscapes import (
     Landscape,
+    LandscapeComputer,
     get_landscape,
     optimize_clustering,
-    wrap_text_with_highlight,
 )
 
 __all__ = [
     # Metrics functionality
+    "MetricsComputer",
+    "MetricsResult", 
     "EmbeddingMetrics",
-    "average_pairwise_cosine_similarity",
-    "mev",
-    "intra_inter_similarity",
     # Landscape functionality
     "Landscape",
+    "LandscapeComputer",
     "get_landscape",
-    "optimize_clustering", 
-    "wrap_text_with_highlight",
+    "optimize_clustering",
 ]

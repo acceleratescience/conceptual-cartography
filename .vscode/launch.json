@@ -1,0 +1,18 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug Experiment",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/experiment.py",
+            "args": ["--config", "configs/bank-test-metrics.yaml"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            }
+        }
+    ]
+} 

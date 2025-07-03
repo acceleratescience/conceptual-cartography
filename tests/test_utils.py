@@ -2,7 +2,7 @@ import pytest
 import torch
 from pathlib import Path
 from pydantic import ValidationError
-from src.utils import load_config_from_yaml, load_sentences, save_output
+from src.core.utils import load_config_from_yaml, load_sentences, save_output
 from src.config import AppConfig, ModelConfigs, DataConfigs, ExperimentConfigs
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"

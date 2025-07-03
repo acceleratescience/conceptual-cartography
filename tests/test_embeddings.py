@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 import re
 
 from pathlib import Path
-from src.utils import load_sentences
+from src.core.utils import load_sentences
 from src.embeddings import ContextEmbedder
 
 

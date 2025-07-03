@@ -12,9 +12,8 @@ from src import (
     save_output,
     save_metrics,
     save_landscape,
-    EmbeddingMetrics,
-    get_landscape,
-    optimize_clustering,
+    MetricsComputer,
+    LandscapeComputer,
 )
 
 @click.command()
@@ -69,10 +68,10 @@ def main(config_path_str: str):
         model_batch_size=cfg.experiment.model_batch_size,
     )
 
-    if output['final_embeddings'].numel() == 0 or output['final_embeddings'].shape == (1, embedder.model.config.hidden_size) and torch.all(output['final_embeddings'] == 0):
+    if output.final_embeddings.numel() == 0 or output.final_embeddings.shape == (1, embedder.model.config.hidden_size) and torch.all(output.final_embeddings == 0):
         click.secho(f"No embeddings were generated for the target word '{cfg.experiment.target_word}'. Check your data and target word.", fg="yellow")
     else:
-        click.echo(f"Generated {output['final_embeddings'].shape[0]} embeddings of dimension {output['final_embeddings'].shape[1]}.")
+        click.echo(f"Generated {output.final_embeddings.shape[0]} embeddings of dimension {output.final_embeddings.shape[1]}.")
 
         # 4. Save results
         output_dir = Path(cfg.data.output_path)
@@ -95,26 +94,26 @@ def main(config_path_str: str):
         click.echo("Generating landscapes...")
         
         if layers == 'final':
-            embeddings = output['final_embeddings']
+            embeddings = output.final_embeddings
         else:
+            if layers == 'all':
+                layers = range(output.hidden_embeddings.shape[1])
             for layer in tqdm(layers, desc="Generating landscapes..."):
-                embeddings = output['hidden_embeddings'][:, layer, :]
-                best_params, df = optimize_clustering(
-                    embeddings,
+                
+                embeddings = output.hidden_embeddings[:, layer, :]
+                if layer == 0:
+                    embeddings = embeddings + torch.randn_like(embeddings) * 1e-4
+                landscape_computer = LandscapeComputer(embeddings)
+                landscape = landscape_computer(
                     pca_components_range=range(cfg.landscapes.pca_min, cfg.landscapes.pca_max + 1, cfg.landscapes.pca_step),
                     n_clusters_range=range(cfg.landscapes.cluster_min, cfg.landscapes.cluster_max + 1, cfg.landscapes.cluster_step),
-                )
-
-                landscape = get_landscape(
-                    embeddings,
-                    best_params['best_params']
                 )
 
                 if cfg.landscapes.generate_all:
                     output_subdir = output_dir / cfg.model.model_name.replace('/', '_') / f"window_{cfg.experiment.context_window}" / cfg.experiment.target_word / "landscapes"
                     save_landscape(str(output_subdir), layer, landscape)
 
-                labels.append(landscape.consensus_labels)
+                labels.append(landscape.cluster_labels)
         click.secho("✅ Landscapes calculated and saved successfully!", fg="green")
 
     # 6. Calculate metrics
@@ -123,26 +122,26 @@ def main(config_path_str: str):
         
         if layers == 'final':
             layer = 'final'
-            final_layer = output['final_embeddings']
-            metrics = EmbeddingMetrics(embeddings=final_layer, labels=None)
-            metrics_dict = metrics.get_metrics(
+            final_layer = output.final_embeddings
+            metrics_computer = MetricsComputer(embeddings=final_layer, labels=None)
+            metrics_result = metrics_computer(
                 corrected=cfg.metrics.anisotropy_correction,
                 include=cfg.metrics.metrics
             )
             output_subdir = output_dir / cfg.model.model_name.replace('/', '_') / f"window_{cfg.experiment.context_window}" / cfg.experiment.target_word / "metrics"
-            save_metrics(str(output_subdir), layer, metrics_dict)
+            save_metrics(str(output_subdir), layer, metrics_result)
         else:
             if layers == 'all':
-                layers = range(output['hidden_embeddings'].shape[1])
+                layers = range(output.hidden_embeddings.shape[1])
             for i, layer in tqdm(enumerate(layers), desc="Processing layers..."):
-                hidden_layer = output['hidden_embeddings'][:, layer, :]
-                metrics = EmbeddingMetrics(embeddings=hidden_layer, labels=labels[i] if labels else None)
-                metrics_dict = metrics.get_metrics(
+                hidden_layer = output.hidden_embeddings[:, layer, :]
+                metrics_computer = MetricsComputer(embeddings=hidden_layer, labels=labels[i] if labels else None)
+                metrics_result = metrics_computer(
                     corrected=cfg.metrics.anisotropy_correction,
                     include=cfg.metrics.metrics
                 )
                 output_subdir = output_dir / cfg.model.model_name.replace('/', '_') / f"window_{cfg.experiment.context_window}" / cfg.experiment.target_word / "metrics"
-                save_metrics(str(output_subdir), layer, metrics_dict)
+                save_metrics(str(output_subdir), layer, metrics_result)
         click.secho("✅ Metrics calculated and saved successfully!", fg="green")
 
     

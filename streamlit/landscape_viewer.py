@@ -1,13 +1,23 @@
+"""Streamlit app for viewing conceptual landscapes."""
+
 import streamlit as st
 import torch
 from pathlib import Path
 import sys
 import re
 
+# THis is probably wrong, but avoids warnings for some reason...
+# TODO: Why?
+project_root = Path(__file__).parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
+from src.analysis import Landscape
+from src.visualization import LandscapeVisualizer
+
+
 def get_available_layers(path):
-    """
-    Find all available layer numbers from the metrics and landscapes directories.
-    """
+    """Find all available layer numbers from the metrics and landscapes directories."""
     metrics_dir = path / 'metrics'
     landscapes_dir = path / 'landscapes'
     
@@ -29,13 +39,12 @@ def get_available_layers(path):
     
     return sorted(list(layers))
 
+
 def main():
-    """
-    Visualizes landscapes and metrics from the specified output directory.
-    """
+    """Main Streamlit app for visualizing landscapes and metrics."""
     # Get path and target word from command line arguments
     if len(sys.argv) != 3:
-        st.error("Usage: streamlit run visualize.py <path_to_directory> <target_word>")
+        st.error("Usage: streamlit run landscape_viewer.py <path_to_directory> <target_word>")
         st.stop()
     
     path_str = sys.argv[1]
@@ -50,7 +59,8 @@ def main():
         st.error(f"Path is not a directory: {path}")
         st.stop()
 
-    st.title(f"Visualizing Landscapes for {path.name}")
+    st.title(f"Conceptual Landscapes: {path.name}")
+    st.markdown(f"**Target word:** `{target_word}`")
     
     # Get available layers
     available_layers = get_available_layers(path)
@@ -124,7 +134,8 @@ def main():
     if landscape is not None:
         st.subheader(f"Landscape - Layer {current_layer}")
         try:
-            st.plotly_chart(landscape.create_plotly_landscape(context, target_word, width=50))
+            fig = LandscapeVisualizer.create_plotly_figure(landscape, context, target_word, width=50)
+            st.plotly_chart(fig, use_container_width=True)
         except Exception as e:
             st.error(f"Error creating landscape plot: {e}")
     else:
@@ -133,7 +144,25 @@ def main():
     # Display metrics
     if metrics is not None:
         st.subheader(f"Metrics - Layer {current_layer}")
-        st.write(metrics)
+        
+        # Display metrics in a nice format
+        if hasattr(metrics, 'mev'):
+            # New MetricsResult format
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.metric("MEV", f"{metrics.mev:.4f}")
+                st.metric("Average Similarity", f"{metrics.average_similarity:.4f}")
+                st.metric("Similarity Std", f"{metrics.similarity_std:.4f}")
+            
+            with col2:
+                if metrics.intra_similarity is not None:
+                    st.metric("Intra-cluster Similarity", f"{metrics.intra_similarity:.4f}")
+                if metrics.inter_similarity is not None:
+                    st.metric("Inter-cluster Similarity", f"{metrics.inter_similarity:.4f}")
+        else:
+            # Legacy dict format
+            st.write(metrics)
     else:
         st.warning(f"No metrics data found for layer {current_layer}")
     
@@ -145,5 +174,6 @@ def main():
         st.write(f"**Contexts file:** {'✓' if contexts_path.exists() else '✗'} {contexts_path.name}")
         st.write(f"**Target word:** {target_word}")
 
+
 if __name__ == "__main__":
-    main()
+    main() 

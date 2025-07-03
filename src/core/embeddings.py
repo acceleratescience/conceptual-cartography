@@ -31,6 +31,7 @@ class EmbeddingResult:
     def embedding_dim(self) -> int:
         return self.final_embeddings.shape[2]
 
+
 class ContextEmbedder:
     def __init__(self, model_name: str):
         os.environ["TOKENIZERS_PARALLELISM"] = "true"
