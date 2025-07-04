@@ -19,7 +19,7 @@ We first recommend installing python 3.12. Instructions for Linux are below, and
 sudo apt-get update
 sudo apt-get install python3.12
 ```
-
+Now when the setup file:
 ```bash
 source ./setup.sh
 ```
