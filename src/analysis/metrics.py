@@ -100,7 +100,7 @@ class MetricsComputer:
         intra_sim = None
         inter_sim = None
         if self.labels is not None:
-            intra_raw, inter_raw = self._compute_intra_inter_similarity()
+            intra_raw, inter_raw = self._compute_intra_inter_similarity(sample=100)
             if corrected:
                 intra_sim = intra_raw - aniso_sim
                 inter_sim = inter_raw - aniso_sim

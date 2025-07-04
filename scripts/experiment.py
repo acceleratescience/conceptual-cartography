@@ -86,11 +86,13 @@ def main(config_path_str: str):
     # 
 
     labels = None
+    optimal_pca_embeddings = None  # Store PCA embeddings for metrics
 
-    # 5. Generate landscapes if configured
+    # Generate landscapes if configured
     if cfg.landscapes.landscapes_provided:
         layers = cfg.metrics.layers
         labels = []
+        optimal_pca_embeddings = []  # Store optimal PCA embeddings
         click.echo("Generating landscapes...")
         
         if layers == 'final':
@@ -114,6 +116,8 @@ def main(config_path_str: str):
                     save_landscape(str(output_subdir), layer, landscape)
 
                 labels.append(landscape.cluster_labels)
+                # Store the PCA embeddings used for clustering for sim
+                optimal_pca_embeddings.append(landscape.pca_embeddings)
         click.secho("✅ Landscapes calculated and saved successfully!", fg="green")
 
     # 6. Calculate metrics
@@ -123,7 +127,18 @@ def main(config_path_str: str):
         if layers == 'final':
             layer = 'final'
             final_layer = output.final_embeddings
-            metrics_computer = MetricsComputer(embeddings=final_layer, labels=None)
+            
+            # Use optimal PCA embeddings if available
+            if optimal_pca_embeddings and len(optimal_pca_embeddings) > 0:
+                embeddings_for_metrics = optimal_pca_embeddings[0]  # Use first (and only) optimal PCA
+                labels_for_metrics = labels[0] if labels else None
+                click.echo(f"Using optimal PCA embeddings ({embeddings_for_metrics.shape[1]}D) for similarity calculation")
+            else:
+                embeddings_for_metrics = final_layer.numpy()
+                labels_for_metrics = None
+                click.echo(f"Using original embeddings ({embeddings_for_metrics.shape[1]}D) for similarity calculation")
+            
+            metrics_computer = MetricsComputer(embeddings=embeddings_for_metrics, labels=labels_for_metrics)
             metrics_result = metrics_computer(
                 corrected=cfg.metrics.anisotropy_correction,
                 include=cfg.metrics.metrics
@@ -135,7 +150,16 @@ def main(config_path_str: str):
                 layers = range(output.hidden_embeddings.shape[1])
             for i, layer in tqdm(enumerate(layers), desc="Processing layers..."):
                 hidden_layer = output.hidden_embeddings[:, layer, :]
-                metrics_computer = MetricsComputer(embeddings=hidden_layer, labels=labels[i] if labels else None)
+                
+                # Use optimal PCA embeddings if available
+                if optimal_pca_embeddings and i < len(optimal_pca_embeddings):
+                    embeddings_for_metrics = optimal_pca_embeddings[i]
+                    click.echo(f"Using optimal PCA embeddings ({embeddings_for_metrics.shape[1]}D) for similarity calculation")
+                else:
+                    embeddings_for_metrics = hidden_layer.numpy()
+                    click.echo(f"Using original embeddings ({embeddings_for_metrics.shape[1]}D) for similarity calculation")
+                
+                metrics_computer = MetricsComputer(embeddings=embeddings_for_metrics, labels=labels[i] if labels else None)
                 metrics_result = metrics_computer(
                     corrected=cfg.metrics.anisotropy_correction,
                     include=cfg.metrics.metrics
