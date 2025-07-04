@@ -19,7 +19,7 @@ We first recommend installing python 3.12. Instructions for Linux are below, and
 sudo apt-get update
 sudo apt-get install python3.12
 ```
-
+Now when the setup file:
 ```bash
 source ./setup.sh
 ```
@@ -162,7 +162,7 @@ class Landscape:
 ### Visualizing the experiment
 Visualizing a completed experiment is straight forward:
 ```bash
-poetry run visualize --path output/sentence-transformers_all-MiniLM-L6-v2/window_None/bank
+poetry run visualize --config 'configs/bank-test-metrics.yaml'
 ```
 This will then show something like
 ```bash
