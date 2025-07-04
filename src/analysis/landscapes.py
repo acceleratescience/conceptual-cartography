@@ -13,20 +13,6 @@ from typing import Optional, Dict, Any
 
 @dataclass
 class Landscape:
-    """Results from landscape analysis of embeddings.
-    
-    Represents a 2D conceptual landscape generated from high-dimensional embeddings
-    through PCA reduction and Gaussian mixture modeling.
-    
-    Attributes:
-        grid_x: X coordinates of the landscape density grid
-        grid_y: Y coordinates of the landscape density grid  
-        density_surface: Z values representing concept density across the landscape
-        pca_embeddings: 2D PCA-reduced embeddings of the original data points
-        cluster_labels: Consensus cluster assignments for each embedding
-        ari_scores: Adjusted Rand Index scores measuring clustering consistency
-        optimization_results: Dictionary containing optimization parameters and scores
-    """
     grid_x: np.ndarray
     grid_y: np.ndarray
     density_surface: np.ndarray
@@ -113,39 +99,60 @@ class LandscapeComputer:
         }
         
         for params in ParameterGrid(param_grid):
-            pca = PCA(n_components=int(params['n_components']))
-            reduced_data = pca.fit_transform(self.embeddings)
-            
-            gmm = GaussianMixture(
-                n_components=int(params['n_clusters']),
-                covariance_type=params['covariance_type']
-            )
-            
-            labels = gmm.fit_predict(reduced_data)
-            
-            if len(np.unique(labels)) > 1:
-                score = silhouette_score(reduced_data, labels)
+            # This is a temporary fix to ensure to stop an error on the first layer
+            # Probably a better way :(
+            try:
+                pca = PCA(n_components=int(params['n_components']))
+                reduced_data = pca.fit_transform(self.embeddings)
                 
-                results.append({
-                    'n_pca_components': int(params['n_components']),
-                    'n_clusters': int(params['n_clusters']),
-                    'covariance_type': params['covariance_type'],
-                    'silhouette_score': float(score),
-                    'explained_variance_ratio': np.sum(pca.explained_variance_ratio_)
-                })
+                gmm = GaussianMixture(
+                    n_components=int(params['n_clusters']),
+                    covariance_type=params['covariance_type']
+                )
                 
-                if score > best_score:
-                    best_score = score
-                    best_params = params.copy()
-                    best_pca = pca
-                    best_gmm = gmm
+                labels = gmm.fit_predict(reduced_data)
+                
+                if len(np.unique(labels)) > 1:
+                    score = silhouette_score(reduced_data, labels)
+                    
+                    results.append({
+                        'n_pca_components': int(params['n_components']),
+                        'n_clusters': int(params['n_clusters']),
+                        'covariance_type': params['covariance_type'],
+                        'silhouette_score': float(score),
+                        'explained_variance_ratio': np.sum(pca.explained_variance_ratio_)
+                    })
+                    
+                    if score > best_score:
+                        best_score = score
+                        best_params = params.copy()
+                        best_pca = pca
+                        best_gmm = gmm
+            except Exception as e:
+                # Skip parameter combinations that cause errors
+                continue
         
-        # Format best paramsS
-        # create dataclass?
-        
-        best_score = float(best_score)
-        best_params['n_components'] = int(best_params['n_components'])
-        best_params['n_clusters'] = int(best_params['n_clusters'])
+        # Handle case where no valid parameters were found
+        if best_params is None:
+            # Use fallback parameters: minimal PCA components and clusters
+            fallback_params = {
+                'n_components': min(pca_components_range),
+                'n_clusters': min(n_clusters_range),
+                'covariance_type': covariance_types[0]
+            }
+            
+            print(f"Warning: No optimal clustering parameters found. Using fallback: {fallback_params}")
+            print(f"This may indicate insufficient data (n_embeddings={len(self.embeddings)}) or low variance.")
+            
+            best_params = fallback_params
+            best_score = -1.0
+            best_pca = None
+            best_gmm = None
+        else:
+            # Format best params
+            best_score = float(best_score)
+            best_params['n_components'] = int(best_params['n_components'])
+            best_params['n_clusters'] = int(best_params['n_clusters'])
 
         results_df = pd.DataFrame(results)
 
@@ -236,10 +243,5 @@ class LandscapeComputer:
             pca_embeddings=X_pca,
             cluster_labels=consensus_labels,
             ari_scores=ari_scores,
-            optimization_results={}  # Will be filled by caller
+            optimization_results={}
         )
-
-
-# Backwards compatibility aliases (can be removed once all code is updated)
-optimize_clustering = None  # Mark as deprecated
-get_landscape = None  # Mark as deprecated
