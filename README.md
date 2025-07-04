@@ -162,7 +162,7 @@ class Landscape:
 ### Visualizing the experiment
 Visualizing a completed experiment is straight forward:
 ```bash
-poetry run experiment --config 'configs/bank-test-metrics.yaml'
+poetry run visualize --config 'configs/bank-test-metrics.yaml'
 ```
 This will then show something like
 ```bash
