@@ -5,7 +5,7 @@ data:
   output_path: 'output'
 experiment:
   model_batch_size: 32
-  context_window: 41
+  context_window: None
   target_word: 'duty'
 metrics:
   anisotropy_correction: False
