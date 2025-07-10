@@ -24,10 +24,17 @@ class LandscapeVisualizer:
         Returns:
             Plotly figure object
         """
-        fig = go.Figure()
-        
         # Create log-transformed density surface to avoid issues with zeros
         log_landscape = np.log10(landscape.density_surface + 1e-10)
+        
+        # Prepare hover text with highlighted target words
+        hover_texts = []
+        for i, context in enumerate(contexts):
+            cluster = landscape.cluster_labels[i]
+            hover_texts.append(wrap_text_with_highlight(context, target_word, None, width))
+
+        # Create figure with clean layout
+        fig = go.Figure()
         
         # Add contour plot for density surface
         fig.add_trace(go.Contour(
@@ -35,62 +42,61 @@ class LandscapeVisualizer:
             y=landscape.grid_y[:, 0],
             z=log_landscape,
             colorscale='hot',
-            opacity=0.7,
+            opacity=0.6,
             showscale=False,
             contours=dict(
                 start=log_landscape.min(),
                 end=log_landscape.max(),
-                size=(log_landscape.max() - log_landscape.min()) / 50,
+                size=(log_landscape.max() - log_landscape.min()) / 40,
             ),
+            hoverinfo='skip'
         ))
 
-        # Prepare hover text with highlighted target words
-        hover_texts = []
-        for i, context in enumerate(contexts):
-            cluster = landscape.cluster_labels[i]
-            color = f'rgb(0, {80 + int(175 * (cluster/8))}, {180 + int(75 * (cluster/8))})'
-            hover_texts.append(wrap_text_with_highlight(context, target_word, color, width))
-
-        # Add scatter plot for data points
+        # Add scatter plot for data points  
         fig.add_trace(go.Scatter(
             x=landscape.pca_embeddings[:, 0],
             y=landscape.pca_embeddings[:, 1],
             mode='markers',
             marker=dict(
-                size=10,
+                size=8,
                 color=landscape.cluster_labels,
-                colorscale='viridis',
-                showscale=False,
+                colorscale='turbo',
+                opacity=0.9,
+                line=dict(width=1, color='white')
             ),
             text=hover_texts,
             hoverinfo='text',
             hoverlabel=dict(
-                font_size=16,
-                font_family="Arial",
-                align="left"
+                bgcolor='white',
+                bordercolor='gray',
+                font_size=14,
+                font_family="Arial"
             ),
             showlegend=False
         ))
 
-        # Update layout
+        # Clean, modern layout
         fig.update_layout(
-            title=dict(
-                text=f'{target_word}',
-                font=dict(size=20, color='rgb(49,51,63)') 
-            ),
-            width=600,
+            width=800,
             height=600,
-            paper_bgcolor='rgba(255,255,255,0.8)',
-            plot_bgcolor='rgba(255,255,255,0.8)',
+            margin=dict(l=20, r=20, t=20, b=20),
+            paper_bgcolor='white',
+            plot_bgcolor='white',
             xaxis=dict(
-                tickfont=dict(size=16),
+                showgrid=True,
+                gridwidth=1,
+                gridcolor='lightgray',
                 zeroline=False,
-                gridcolor='rgb(240,242,246)'
+                showticklabels=True,
+                tickfont=dict(size=12, color='black')
             ),
             yaxis=dict(
-                tickfont=dict(size=16),
+                showgrid=True,
+                gridwidth=1,
+                gridcolor='lightgray',
                 zeroline=False,
-                gridcolor='rgb(240,242,246)'
+                showticklabels=True,
+                tickfont=dict(size=12, color='black')
             ),
             hovermode='closest'
         )
@@ -98,20 +104,20 @@ class LandscapeVisualizer:
         return fig
 
 
-def wrap_text_with_highlight(text: str, keyword: str, color: str, width: int = 50) -> str:
+def wrap_text_with_highlight(text: str, keyword: str, color: str = None, width: int = 50) -> str:
     """Highlight keyword and wrap text with simple HTML.
     
     Args:
         text: Input text to process
         keyword: Keyword to highlight
-        color: Color for highlighting (currently unused)
+        color: Color for highlighting (unused, kept for compatibility)
         width: Maximum line width for wrapping
         
     Returns:
         HTML-formatted text with highlighting and line breaks
     """
     pattern = re.compile(re.escape(keyword), re.IGNORECASE)
-    colored_text = pattern.sub(f'<b>\\g<0></b></span>', text)
+    colored_text = pattern.sub(f'<b>\\g<0></b>', text)
     
     lines = []
     current_line = ''

@@ -73,6 +73,19 @@ def main():
     if 'current_layer' not in st.session_state:
         st.session_state.current_layer = available_layers[0]
     
+    
+    
+    with st.expander("Jump to specific layer"):
+        selected_layer = st.selectbox(
+            "Select layer:", 
+            available_layers, 
+            index=available_layers.index(st.session_state.current_layer),
+            key="layer_selector"
+        )
+        if selected_layer != st.session_state.current_layer:
+            st.session_state.current_layer = selected_layer
+            st.rerun()
+
     # Create navigation controls
     col1, col2, col3 = st.columns([1, 2, 1])
     
@@ -92,18 +105,6 @@ def main():
             if current_idx < len(available_layers) - 1:
                 st.session_state.current_layer = available_layers[current_idx + 1]
                 st.rerun()
-    
-    # Optional: Add a selectbox for direct layer selection
-    with st.expander("Jump to specific layer"):
-        selected_layer = st.selectbox(
-            "Select layer:", 
-            available_layers, 
-            index=available_layers.index(st.session_state.current_layer),
-            key="layer_selector"
-        )
-        if selected_layer != st.session_state.current_layer:
-            st.session_state.current_layer = selected_layer
-            st.rerun()
 
     # Load data for current layer
     current_layer = st.session_state.current_layer
