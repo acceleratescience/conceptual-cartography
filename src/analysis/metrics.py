@@ -47,9 +47,8 @@ class MetricsComputer:
         self.sentences = sentences
         self.context_window = context_window
         
-        # # Cached computations
-        # self._similarity_matrix: Optional[np.ndarray] = None
-        # self._anisotropic_baselines: Optional[Tuple[float, float]] = None
+        # Cached computations
+        self._anisotropic_baselines: Optional[Tuple[float, float]] = None
 
     def _generate_anisotropic_embeddings(self, sample_size: Optional[int] = 1000) -> np.ndarray:
         pass
@@ -147,6 +146,8 @@ class MetricsComputer:
     def _compute_average_similarity(self) -> Tuple[float, float]:
         """Compute average pairwise cosine similarity and standard deviation."""
         similarities = self._get_similarity_matrix()
+        # Normalize to [0, 1] range for consistency with intra/inter similarity
+        similarities = (similarities + 1) / 2
         upper_triangle = np.triu(similarities)
         indices = np.triu_indices(len(similarities), k=1)
         upper_vector = upper_triangle[indices]
@@ -190,6 +191,8 @@ class MetricsComputer:
         if self._anisotropic_baselines is None:
             # Compute similarity baseline
             similarities = cosine_similarity(anisotropic_embeddings)
+            # Normalize to [0, 1] range for consistency with other similarity metrics
+            similarities = (similarities + 1) / 2
             upper_triangle = np.triu(similarities)
             indices = np.triu_indices(len(similarities), k=1)
             upper_vector = upper_triangle[indices]
