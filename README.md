@@ -17,8 +17,7 @@
 [![Twitter Follow](https://img.shields.io/twitter/follow/AccelerateSci.svg?style=social)](https://twitter.com/AccelerateSci)
 <!-- [![LinkedIn][linkedin-shield]][linkedin-url] -->
 
-Conceptual Landscaping with BERT and Friends
-========================
+# <img src="assets/bert.png" alt="BERT" width="40" style="vertical-align: middle;"/> Conceptual Landscaping with BERT and Friends
 
 Welcome to the Conceptual Landscaping with BERT and Friends repository! This project is designed to help you explore and visualize the conceptual landscape of a given text using advanced language models like BERT, RoBERTa, and DistilBERT. The goal is to provide a user-friendly interface for analyzing and understanding the relationships between different concepts in your text.
 
@@ -86,6 +85,24 @@ then restart your terminal or run `source ~/.bashrc`. Don't forget to reactivate
 For cpu only PyTorch, you can run
 ```bash
 pip install torch --index-url https://download.pytorch.org/whl/cpu
+```
+
+## Data Format Requirements
+
+**Important**: Your input text data must be formatted with **one sentence per line**. The system reads text files line-by-line, where each non-empty line is treated as a separate sentence for analysis.
+
+### Example format:
+```
+I need to go to the bank today to deposit this cheque.
+She decided to open a new savings account at a different bank for a better interest rate.
+The bank approved their mortgage application after reviewing their financial history.
+We decided to have our picnic on the grassy bank of the river.
+The children loved skipping stones from the river bank into the water.
+```
+
+### ❌ Incorrect format:
+```
+I need to go to the bank today. She decided to open a savings account. The bank approved their mortgage application.
 ```
 
 ## Running an experiment.
