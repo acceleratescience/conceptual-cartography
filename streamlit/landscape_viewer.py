@@ -13,8 +13,9 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 from src.analysis import Landscape
-from src.visualization import LandscapeVisualizer
+from src.visualization import LandscapeVisualizer, MetricsVisualizer
 
+st.set_page_config(layout="wide", page_title="Conceptual Landscapes")
 
 def get_available_layers(path):
     """Find all available layer numbers from the metrics and landscapes directories."""
@@ -73,18 +74,16 @@ def main():
     if 'current_layer' not in st.session_state:
         st.session_state.current_layer = available_layers[0]
     
-    
-    
-    with st.expander("Jump to specific layer"):
-        selected_layer = st.selectbox(
-            "Select layer:", 
-            available_layers, 
-            index=available_layers.index(st.session_state.current_layer),
-            key="layer_selector"
-        )
-        if selected_layer != st.session_state.current_layer:
-            st.session_state.current_layer = selected_layer
-            st.rerun()
+    # Layer selector - always visible
+    selected_layer = st.selectbox(
+        "Select layer:", 
+        available_layers, 
+        index=available_layers.index(st.session_state.current_layer),
+        key="layer_selector"
+    )
+    if selected_layer != st.session_state.current_layer:
+        st.session_state.current_layer = selected_layer
+        st.rerun()
 
     # Create navigation controls
     col1, col2, col3 = st.columns([1, 2, 1])
@@ -131,42 +130,67 @@ def main():
         st.error(f"Error loading data for layer {current_layer}: {e}")
         st.stop()
 
-    # Display landscape
-    if landscape is not None:
-        st.subheader(f"Landscape - Layer {current_layer}")
-        try:
-            fig = LandscapeVisualizer.create_plotly_figure(landscape, context, target_word, width=50)
-            st.plotly_chart(fig, use_container_width=True)
-        except Exception as e:
-            st.error(f"Error creating landscape plot: {e}")
-    else:
-        st.warning(f"No landscape data found for layer {current_layer}")
-
-    # Display metrics
-    if metrics is not None:
-        st.subheader(f"Metrics - Layer {current_layer}")
-        
-        # Display metrics in a nice format
-        if hasattr(metrics, 'mev'):
-            # New MetricsResult format
-            col1, col2 = st.columns(2)
+    # Display landscape, metrics, and trend graphs
+    col1, col2, col3 = st.columns([1.5, 0.5, 1.5])  # Landscape, current metrics, trend graphs
+    
+    with col1:
+        # Display landscape
+        if landscape is not None:
+            st.subheader(f"Landscape - Layer {current_layer}")
+            try:
+                fig = LandscapeVisualizer.create_plotly_figure(landscape, context, target_word, width=50)
+                st.plotly_chart(fig, use_container_width=True)
+            except Exception as e:
+                st.error(f"Error creating landscape plot: {e}")
+        else:
+            st.warning(f"No landscape data found for layer {current_layer}")
+    
+    with col2:
+        # Display metrics
+        if metrics is not None:
+            st.subheader(f"Metrics - Layer {current_layer}")
             
-            with col1:
+            # Display metrics in a nice format
+            if hasattr(metrics, 'mev'):
+                # New MetricsResult format
                 st.metric("MEV", f"{metrics.mev:.4f}")
                 st.metric("Average Similarity", f"{metrics.average_similarity:.4f}")
                 st.metric("Similarity Std", f"{metrics.similarity_std:.4f}")
-            
-            with col2:
+                
                 if metrics.intra_similarity is not None:
                     st.metric("Intra-cluster Similarity", f"{metrics.intra_similarity:.4f}")
                 if metrics.inter_similarity is not None:
                     st.metric("Inter-cluster Similarity", f"{metrics.inter_similarity:.4f}")
+            else:
+                # Legacy dict format
+                st.write(metrics)
         else:
-            # Legacy dict format
-            st.write(metrics)
-    else:
-        st.warning(f"No metrics data found for layer {current_layer}")
-    
+            st.warning(f"No metrics data found for layer {current_layer}")
+
+    with col3:
+        # Display trend graphs across all layers
+        st.subheader("Metrics Across Layers")
+        
+        # Collect metrics for all layers
+        layer_metrics = {}
+        for layer in available_layers:
+            layer_metrics_path = path / f'metrics/metrics_layer-{layer}.pt'
+            if layer_metrics_path.exists():
+                try:
+                    layer_data = torch.load(layer_metrics_path, weights_only=False)
+                    layer_metrics[layer] = layer_data
+                except Exception:
+                    pass
+        
+        if layer_metrics:
+            fig_mev, fig_avg, fig_cluster = MetricsVisualizer.create_metrics_trend_plots(layer_metrics, current_layer)
+            
+            st.plotly_chart(fig_mev, use_container_width=True)
+            st.plotly_chart(fig_avg, use_container_width=True)
+            st.plotly_chart(fig_cluster, use_container_width=True)
+        else:
+            st.warning("No metrics data found for trend analysis")
+
     # Show available files info
     with st.expander("Available files info"):
         st.write(f"**Available layers:** {', '.join(map(str, available_layers))}")
@@ -177,4 +201,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main() 
+    main()

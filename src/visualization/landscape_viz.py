@@ -6,6 +6,64 @@ import plotly.graph_objects as go
 from typing import List
 from src.analysis.landscapes import Landscape
 
+class MetricsVisualizer:
+    """Visualizer for metrics trends across layers."""
+    
+    @staticmethod
+    def create_metrics_trend_plots(layer_metrics, current_layer):
+        """Create three trend plots for metrics across layers."""
+        layers = sorted(layer_metrics.keys())
+        mev_values = []
+        avg_sim_values = []
+        intra_sim_values = []
+        inter_sim_values = []
+        
+        for layer in layers:
+            data = layer_metrics[layer]
+            if hasattr(data, 'mev'):
+                mev_values.append(data.mev)
+                avg_sim_values.append(data.average_similarity)
+                intra_sim_values.append(data.intra_similarity if data.intra_similarity is not None else None)
+                inter_sim_values.append(data.inter_similarity if data.inter_similarity is not None else None)
+            else:
+                mev_values.append(None)
+                avg_sim_values.append(None)
+                intra_sim_values.append(None)
+                inter_sim_values.append(None)
+        
+        # MEV plot
+        fig_mev = go.Figure()
+        fig_mev.add_trace(go.Scatter(x=layers, y=mev_values, mode='lines+markers', name='MEV'))
+        fig_mev.add_vline(x=current_layer, line_dash="dash", line_color="red", annotation_text="Current")
+        fig_mev.update_layout(title="MEV", height=200, margin=dict(l=20, r=20, t=40, b=20))
+        
+        # Average Similarity plot
+        fig_avg = go.Figure()
+        fig_avg.add_trace(go.Scatter(x=layers, y=avg_sim_values, mode='lines+markers', name='Avg Similarity'))
+        fig_avg.add_vline(x=current_layer, line_dash="dash", line_color="red", annotation_text="Current")
+        fig_avg.update_layout(title="Average Similarity", height=200, margin=dict(l=20, r=20, t=40, b=20))
+        
+        # Intra/Inter Similarity plot
+        fig_cluster = go.Figure()
+        if any(v is not None for v in intra_sim_values):
+            fig_cluster.add_trace(go.Scatter(x=layers, y=intra_sim_values, mode='lines+markers', name='Intra-cluster'))
+        if any(v is not None for v in inter_sim_values):
+            fig_cluster.add_trace(go.Scatter(x=layers, y=inter_sim_values, mode='lines+markers', name='Inter-cluster'))
+        fig_cluster.add_vline(x=current_layer, line_dash="dash", line_color="red", annotation_text="Current")
+        fig_cluster.update_layout(
+            title="Cluster Similarities", 
+            height=200, 
+            margin=dict(l=20, r=20, t=40, b=40),
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=-0.3,
+                xanchor="center",
+                x=0.5
+            )
+        )
+        
+        return fig_mev, fig_avg, fig_cluster
 
 class LandscapeVisualizer:
     """Create interactive visualizations of conceptual landscapes."""
@@ -70,14 +128,15 @@ class LandscapeVisualizer:
                 bgcolor='white',
                 bordercolor='gray',
                 font_size=14,
-                font_family="Arial"
+                font_family="Arial",
+                font_color='black'
             ),
             showlegend=False
         ))
 
         # Clean, modern layout
         fig.update_layout(
-            width=800,
+            width=600,
             height=600,
             margin=dict(l=20, r=20, t=20, b=20),
             paper_bgcolor='white',
@@ -116,13 +175,10 @@ def wrap_text_with_highlight(text: str, keyword: str, color: str = None, width: 
     Returns:
         HTML-formatted text with highlighting and line breaks
     """
-    pattern = re.compile(re.escape(keyword), re.IGNORECASE)
-    colored_text = pattern.sub(f'<b>\\g<0></b>', text)
-    
     lines = []
     current_line = ''
     
-    words = colored_text.split(' ')
+    words = text.split(' ')
     for word in words:
         if len(current_line) + len(word) + 1 <= width:
             current_line += ' ' + word if current_line else word
@@ -132,5 +188,12 @@ def wrap_text_with_highlight(text: str, keyword: str, color: str = None, width: 
     
     if current_line:
         lines.append(current_line)
+    
+    # highlighting target
+    pattern = re.compile(re.escape(keyword), re.IGNORECASE)
+    highlighted_lines = []
+    for line in lines:
+        highlighted_line = pattern.sub(f'<b><span style="color: #000080;">\\g<0></span></b>', line)
+        highlighted_lines.append(highlighted_line)
         
-    return '<br>'.join(lines) 
+    return '<br>'.join(highlighted_lines)
