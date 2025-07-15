@@ -42,8 +42,6 @@ from .analysis import (
     MetricsResult,
     Landscape,
     LandscapeComputer,
-    get_landscape,  # Backwards compatibility
-    optimize_clustering,  # Backwards compatibility
 )
 
 __version__ = "0.1.0"
@@ -72,8 +70,6 @@ __all__ = [
     "MetricsResult",
     "Landscape",
     "LandscapeComputer",
-    "get_landscape",  # Backwards compatibility
-    "optimize_clustering",  # Backwards compatibility
     
     # Metadata
     "__version__",

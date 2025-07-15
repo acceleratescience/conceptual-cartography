@@ -11,8 +11,6 @@ from .metrics import (
 from .landscapes import (
     Landscape,
     LandscapeComputer,
-    get_landscape,
-    optimize_clustering,
 )
 
 __all__ = [
@@ -23,6 +21,4 @@ __all__ = [
     # Landscape functionality
     "Landscape",
     "LandscapeComputer",
-    "get_landscape",
-    "optimize_clustering",
 ]
