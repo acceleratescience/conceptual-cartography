@@ -90,8 +90,18 @@ class AppConfig(BaseModel):
 
     @model_validator(mode='after')
     def validate_layers_against_model(self) -> 'AppConfig':
+        # Only validate layers if metrics are actually provided
+        if not self.metrics.metrics_provided:
+            return self
+            
         model_name = self.model.model_name
         layers_to_check = self.metrics.layers
+
+        # Skip validation for string values like 'final'
+        if isinstance(layers_to_check, str):
+            if layers_to_check not in ['final', 'all']:
+                raise ValueError("layers must be 'final', 'all', or a list of integers")
+            return self
 
         try:
             config = AutoConfig.from_pretrained(model_name)
@@ -110,13 +120,14 @@ class AppConfig(BaseModel):
                 layers_to_check = range(num_layers)
                 self.metrics.layers = layers_to_check
 
-            # Validate each requested layer index
-            for layer_index in layers_to_check:
-                if not (0 <= layer_index < num_layers):
-                    raise ValueError(
-                        f"\nInvalid layer index: {layer_index}.\n"
-                        f"Model '{model_name}' has {num_layers} layers (indexed 0 to {num_layers - 1})."
-                    )
+            # Only validate if we have a list/range of integers
+            if hasattr(layers_to_check, '__iter__') and not isinstance(layers_to_check, str):
+                for layer_index in layers_to_check:
+                    if not (0 <= layer_index < num_layers):
+                        raise ValueError(
+                            f"\nInvalid layer index: {layer_index}.\n"
+                            f"Model '{model_name}' has {num_layers} layers (indexed 0 to {num_layers - 1})."
+                        )
 
         except (OSError, HTTPError):
             raise ValueError(f"Could not fetch configuration for model: '{model_name}'. Please ensure the name is correct and you are online.")

@@ -7,16 +7,23 @@ from pydantic import ValidationError
 import torch
 
 def load_config_from_yaml(config_path: Path) -> AppConfig:
-    with open(config_path, 'r') as f:
-        config_dict = yaml.safe_load(f)
-
-    try:
-        app_config = AppConfig(**config_dict)
-        return app_config
-    except ValidationError as e:
-        print(f"❌ Configuration Error in '{config_path}':")
-        print(e)
-        raise
+    with open(config_path, 'r') as file:
+        yaml_data = yaml.safe_load(file)
+    
+    # Check if metrics and landscapes sections are present
+    metrics_provided = 'metrics' in yaml_data
+    landscapes_provided = 'landscapes' in yaml_data
+    
+    # Set the flags in the YAML data before parsing
+    if 'metrics' not in yaml_data:
+        yaml_data['metrics'] = {}
+    if 'landscapes' not in yaml_data:
+        yaml_data['landscapes'] = {}
+    
+    yaml_data['metrics']['metrics_provided'] = metrics_provided
+    yaml_data['landscapes']['landscapes_provided'] = landscapes_provided
+    
+    return AppConfig.model_validate(yaml_data)
 
 
 def load_sentences(file_path: str) -> list[str]:

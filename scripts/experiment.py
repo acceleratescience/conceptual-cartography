@@ -34,13 +34,15 @@ def main(config_path_str: str):
     except ValueError as e:
         return
 
-    # Check if metrics are provided and set the flag
-    cfg.metrics.metrics_provided = bool(cfg.metrics.metrics)
-    cfg.landscapes.landscapes_provided = bool(cfg.landscapes.pca_min)
+    # # Check if metrics are provided and set the flag
+    # cfg.metrics.metrics_provided = bool(cfg.metrics.metrics)
+    # cfg.landscapes.landscapes_provided = bool(cfg.landscapes.pca_min)
 
     click.echo(f"🚀 Starting experiment with configuration from: {config_path}")
     click.echo(f"Model: {cfg.model.model_name}")
     click.echo(f"Target word: '{cfg.experiment.target_word}'")
+    click.echo(f"Metrics enabled: {cfg.metrics.metrics_provided}")
+    click.echo(f"Landscapes enabled: {cfg.landscapes.landscapes_provided}")
 
     # 1. Initialize ContextEmbedder
     click.echo("Initializing ContextEmbedder...")
