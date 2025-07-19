@@ -166,7 +166,7 @@ class MetricsComputer:
         # Optional sampling to reduce computation time
         if sample:
             n = embeddings.shape[0]
-            indices = np.random.choice(n, sample, replace=False)
+            indices = np.random.choice(n, min(sample,n), replace=False)
             embeddings = embeddings[indices]
             labels = np.array(labels)[indices]
         
